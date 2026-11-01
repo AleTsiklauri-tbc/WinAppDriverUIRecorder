@@ -1,0 +1,152 @@
+<UserControl x:Class="Recorder.App.Views.InspectorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="clr-namespace:Recorder.App.Resources"
+             xmlns:views="clr-namespace:Recorder.App.Views"
+             AutomationProperties.AutomationId="Inspector">
+    <!-- DataContext: InspectorViewModel -->
+    <Grid>
+        <TextBlock Style="{StaticResource EmptyStateTextStyle}" Text="{x:Static res:Strings.Inspector_Empty}"
+                   Visibility="{Binding HasElement, Converter={StaticResource ToCollapsedVisibility}}"
+                   AutomationProperties.AutomationId="Inspector.Empty" />
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding HasElement, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Margin="{StaticResource Space2}">
+                <!-- Header: variable name (editable once captured), what it is, and its window -->
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" VerticalAlignment="Top" Style="{StaticResource AccentButtonStyle}"
+                            Content="{x:Static res:Strings.Inspector_Capture}" Command="{Binding CaptureCommand}"
+                            ToolTip="{x:Static res:Strings.Inspector_Capture_Tip}"
+                            Visibility="{Binding IsCaptured, Converter={StaticResource ToCollapsedVisibility}}"
+                            AutomationProperties.AutomationId="Inspector.Capture" />
+                    <StackPanel>
+                        <TextBox x:Name="NameBox" FontSize="20" FontWeight="SemiBold" Padding="4,2" Margin="-4,0,8,0"
+                                 Text="{Binding EditableName, UpdateSourceTrigger=PropertyChanged}"
+                                 Visibility="{Binding IsCaptured, Converter={StaticResource BoolToVisibility}}"
+                                 ToolTip="{x:Static res:Strings.Inspector_VariableName_Tip}"
+                                 LostKeyboardFocus="OnNameLostFocus"
+                                 AutomationProperties.Name="{x:Static res:Strings.Inspector_VariableName}"
+                                 AutomationProperties.AutomationId="Inspector.VariableName">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding CommitNameCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <TextBlock Text="{Binding Title}" AutomationProperties.AutomationId="Inspector.Title">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource TitleTextStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCaptured}" Value="True">
+                                            <Setter Property="FontSize" Value="13" />
+                                            <Setter Property="FontWeight" Value="Normal" />
+                                            <Setter Property="Margin" Value="0,4,0,0" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" Text="{Binding PageText}" AutomationProperties.AutomationId="Inspector.Page" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,2,0,0" Text="{x:Static res:Strings.Inspector_NotCaptured}"
+                                   Visibility="{Binding IsCaptured, Converter={StaticResource ToCollapsedVisibility}}" />
+                    </StackPanel>
+                </DockPanel>
+
+                <views:LocatorCardView Margin="0,16,0,0" DataContext="{Binding Locators}" />
+
+                <!-- Ancestors: click one to inspect it -->
+                <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Inspector_Ancestors}" />
+                <ItemsControl ItemsSource="{Binding Ancestors}" Focusable="False" AutomationProperties.AutomationId="Inspector.Ancestors">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{StaticResource SubtleButtonStyle}" Content="{Binding Label}"
+                                        Command="{Binding DataContext.InspectAncestorCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="{x:Static res:Strings.Inspector_Ancestors_Tip}"
+                                        AutomationProperties.Name="{Binding Label}"
+                                        AutomationProperties.AutomationId="Inspector.Ancestor" />
+                                <TextBlock VerticalAlignment="Center" Margin="2,0" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="›" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Advanced -->
+                <Expander Margin="0,16,0,0" Header="{x:Static res:Strings.Inspector_Advanced}" IsExpanded="{Binding IsAdvancedExpanded}"
+                          AutomationProperties.AutomationId="Inspector.Advanced">
+                    <StackPanel Margin="0,8,0,0">
+                        <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Margin="0,0,0,6" Text="{x:Static res:Strings.Inspector_AbsoluteXPath}" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{x:Static res:Strings.Inspector_AbsoluteXPath_Note}" />
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,6,0,0" Text="{x:Static res:Strings.Inspector_Computing}"
+                                   Visibility="{Binding IsXPathLoading, Converter={StaticResource BoolToVisibility}}" />
+                        <DockPanel Margin="0,6,0,0" Visibility="{Binding XPathFailed, Converter={StaticResource BoolToVisibility}}">
+                            <Button DockPanel.Dock="Right" Content="{x:Static res:Strings.Inspector_TryAgain}" Command="{Binding LoadXPathCommand}"
+                                    AutomationProperties.AutomationId="Inspector.XPathRetry" />
+                            <TextBlock Style="{StaticResource BodyTextStyle}" Text="{x:Static res:Strings.Inspector_XPathFailed}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,6,0,0" Visibility="{Binding AbsoluteXPath, Converter={StaticResource ToVisibility}}">
+                            <Button DockPanel.Dock="Right" VerticalAlignment="Top" Margin="8,0,0,0" Style="{StaticResource SubtleButtonStyle}"
+                                    Command="{Binding CopyXPathCommand}" ToolTip="{x:Static res:Strings.Inspector_Copy_Tip}"
+                                    AutomationProperties.Name="{x:Static res:Strings.Inspector_Copy}"
+                                    AutomationProperties.AutomationId="Inspector.CopyXPath">
+                                <TextBlock Style="{StaticResource IconTextStyle}" FontSize="14" Text="&#xE8C8;" />
+                            </Button>
+                            <TextBox Style="{StaticResource {x:Type TextBox}}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"
+                                     FontFamily="{StaticResource MonoFontFamily}" Text="{Binding AbsoluteXPath, Mode=OneWay}"
+                                     AutomationProperties.Name="{x:Static res:Strings.Inspector_AbsoluteXPath}"
+                                     AutomationProperties.AutomationId="Inspector.AbsoluteXPath" />
+                        </DockPanel>
+
+                        <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Inspector_Properties}" />
+                        <ItemsControl ItemsSource="{Binding Properties}" Focusable="False" AutomationProperties.AutomationId="Inspector.Properties">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding Name}" />
+                                        <TextBox Grid.Column="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" TextWrapping="Wrap"
+                                                 Padding="0" MinHeight="0" VerticalAlignment="Center"
+                                                 FontFamily="{StaticResource MonoFontFamily}" Text="{Binding Value, Mode=OneWay}"
+                                                 AutomationProperties.Name="{Binding Name}" />
+                                        <Button Grid.Column="2" Style="{StaticResource SubtleButtonStyle}"
+                                                Command="{Binding DataContext.CopyPropertyCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}" ToolTip="{x:Static res:Strings.Inspector_Copy_Tip}"
+                                                AutomationProperties.Name="{x:Static res:Strings.Inspector_Copy}"
+                                                AutomationProperties.AutomationId="Inspector.CopyProperty">
+                                            <TextBlock Style="{StaticResource IconTextStyle}" FontSize="12" Text="&#xE8C8;" />
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Inspector_Patterns}" />
+                        <ItemsControl ItemsSource="{Binding Patterns}" Focusable="False" AutomationProperties.AutomationId="Inspector.Patterns">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,6,6" Padding="8,2" CornerRadius="{StaticResource Radius}"
+                                            Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                        <TextBlock Text="{Binding}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Expander>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

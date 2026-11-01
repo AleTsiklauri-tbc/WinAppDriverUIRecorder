@@ -1,0 +1,72 @@
+<UserControl x:Class="Recorder.App.Views.FirstRunView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="clr-namespace:Recorder.App.Resources"
+             xmlns:vm="clr-namespace:Recorder.App.ViewModels">
+    <UserControl.Resources>
+        <Style x:Key="StepBadgeBase" TargetType="Border">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+        <Style x:Key="ChooseTargetBadge" TargetType="Border" BasedOn="{StaticResource StepBadgeBase}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding FirstRun.CurrentStep}" Value="{x:Static vm:FirstRunStep.ChooseTarget}">
+                    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="CaptureOrRecordBadge" TargetType="Border" BasedOn="{StaticResource StepBadgeBase}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding FirstRun.CurrentStep}" Value="{x:Static vm:FirstRunStep.CaptureOrRecord}">
+                    <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="BadgeNumberStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="StepTextStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+            <Setter Property="Margin" Value="12,4,0,0" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel MaxWidth="480" Margin="{StaticResource Space3}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Visibility="{Binding FirstRun.IsVisible, Converter={StaticResource BoolToVisibility}}"
+                AutomationProperties.AutomationId="FirstRun">
+        <TextBlock Style="{StaticResource TitleTextStyle}" Margin="0,0,0,16"
+                   Text="{x:Static res:Strings.FirstRun_Title}"
+                   AutomationProperties.AutomationId="FirstRun.Title" />
+
+        <DockPanel Margin="0,0,0,12">
+            <Border Style="{StaticResource ChooseTargetBadge}">
+                <TextBlock Style="{StaticResource BadgeNumberStyle}" Text="1" />
+            </Border>
+            <TextBlock Style="{StaticResource StepTextStyle}" Text="{x:Static res:Strings.FirstRun_Step1}"
+                       AutomationProperties.AutomationId="FirstRun.Step1" />
+        </DockPanel>
+
+        <DockPanel Margin="0,0,0,12">
+            <Border Style="{StaticResource CaptureOrRecordBadge}">
+                <TextBlock Style="{StaticResource BadgeNumberStyle}" Text="2" />
+            </Border>
+            <TextBlock Style="{StaticResource StepTextStyle}" Text="{x:Static res:Strings.FirstRun_Step2}"
+                       AutomationProperties.AutomationId="FirstRun.Step2" />
+        </DockPanel>
+
+        <DockPanel>
+            <Border Style="{StaticResource CaptureOrRecordBadge}">
+                <TextBlock Style="{StaticResource BadgeNumberStyle}" Text="3" />
+            </Border>
+            <TextBlock Style="{StaticResource StepTextStyle}" Text="{x:Static res:Strings.FirstRun_Step3}"
+                       AutomationProperties.AutomationId="FirstRun.Step3" />
+        </DockPanel>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,12 @@
+* text=auto
+
+# The legacy recorder is kept byte-for-byte as received.
+legacy/** -text
+
+*.png binary
+*.ico binary
+
+# Verify snapshot files
+*.verified.txt text eol=lf working-tree-encoding=UTF-8
+*.verified.java text eol=lf working-tree-encoding=UTF-8
+*.verified.cs text eol=lf working-tree-encoding=UTF-8

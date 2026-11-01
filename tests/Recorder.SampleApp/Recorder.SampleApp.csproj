@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Imitates the real target (LMS.exe): .NET Framework 4.8 WinForms, MDI, no DPI awareness declared. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>Recorder.SampleApp</RootNamespace>
+    <AssemblyName>Recorder.SampleApp</AssemblyName>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Web\insurance.html" LogicalName="Recorder.SampleApp.insurance.html" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ka">
+<head>
+  <meta charset="utf-8">
+  <title>Insurance</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 16px; }
+    label { display: block; margin-top: 10px; }
+    button { margin-top: 12px; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <form id="insuranceForm" class="ng-untouched ng-pristine ng-valid">
+    <label for="datepicker-3">ვადის დასასრული</label>
+    <input id="datepicker-3" type="text" class="form-control custom-input ng-untouched ng-pristine ng-valid">
+
+    <label for="ratio">კოეფიციენტი</label>
+    <input id="ratio" type="text" class="form-control custom-input ng-untouched ng-pristine ng-valid">
+
+    <label><input id="activeCheck" type="checkbox" class="form-check-input ng-untouched ng-pristine ng-valid"> აქტიური</label>
+
+    <label for="insuranceType">დაზღვევის ტიპი</label>
+    <span class="k-combobox">
+      <input id="insuranceType" class="k-input-inner" role="combobox" aria-expanded="false">
+      <button type="button" class="k-input-button" aria-label="არჩევის ღილაკი">▾</button>
+    </span>
+
+    <div>
+      <button id="insurance_policy_update_ratio" type="button" class="btn btn-primary command-btn">კოეფიციენტის ცვლილება</button>
+      <button type="button" class="save-btn btn btn-primary me-2 ng-star-inserted">დამატება</button>
+    </div>
+  </form>
+  <script>
+    // Angular form-state classes change while the user works, so they are not stable locators.
+    document.querySelectorAll('input').forEach(function (element) {
+      element.addEventListener('input', function () { element.classList.replace('ng-pristine', 'ng-dirty'); });
+      element.addEventListener('blur', function () { element.classList.replace('ng-untouched', 'ng-touched'); });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<Window x:Class="Recorder.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="clr-namespace:Recorder.App.Resources"
+        xmlns:views="clr-namespace:Recorder.App.Views"
+        Title="{x:Static res:Strings.App_Title}"
+        Width="1200" Height="760" MinWidth="1000" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="{StaticResource UiFontFamily}"
+        AutomationProperties.AutomationId="MainWindow">
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+F" Command="{x:Static views:MainWindow.FilterElementsCommand}" />
+        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyJavaLineCommand}" />
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="{x:Static views:MainWindow.FilterElementsCommand}" Executed="OnFilterElements" />
+    </Window.CommandBindings>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <views:ToolbarView Grid.Row="0" />
+        <views:BannerHostView Grid.Row="1" />
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" MinWidth="220" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MinWidth="360" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="360" MinWidth="240" />
+            </Grid.ColumnDefinitions>
+
+            <TabControl Grid.Column="0" Margin="8,8,0,8" SelectedIndex="{Binding SelectedLeftTab}" AutomationProperties.AutomationId="LeftPane">
+                <TabItem Header="{x:Static res:Strings.Steps_Tab}" AutomationProperties.AutomationId="Tab.Steps">
+                    <TextBlock Style="{StaticResource EmptyStateTextStyle}"
+                               Text="{x:Static res:Strings.Steps_Empty}"
+                               AutomationProperties.AutomationId="Steps.Empty" />
+                </TabItem>
+                <TabItem Header="{x:Static res:Strings.Elements_Tab}" AutomationProperties.AutomationId="Tab.Elements">
+                    <views:ElementsView x:Name="ElementsPane" DataContext="{Binding Elements}" />
+                </TabItem>
+            </TabControl>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"
+                          AutomationProperties.AutomationId="Splitter.Left" />
+
+            <Grid Grid.Column="2" AutomationProperties.AutomationId="CenterPane">
+                <views:FirstRunView />
+                <views:InspectorView x:Name="InspectorPane" DataContext="{Binding Inspector}"
+                                     Visibility="{Binding DataContext.FirstRun.HasWork, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+
+            <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent"
+                          AutomationProperties.AutomationId="Splitter.Right" />
+
+            <Border Grid.Column="4" Margin="0,8,8,8" BorderThickness="1"
+                    CornerRadius="{StaticResource Radius}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    AutomationProperties.AutomationId="CodePane">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeaderTextStyle}" Text="{x:Static res:Strings.Code_Title}" />
+                    <TextBlock Style="{StaticResource EmptyStateTextStyle}"
+                               Text="{x:Static res:Strings.Code_Empty}"
+                               AutomationProperties.AutomationId="Code.Empty" />
+                </DockPanel>
+            </Border>
+
+            <views:ToastHostView Grid.Column="0" Grid.ColumnSpan="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" />
+        </Grid>
+
+        <StatusBar Grid.Row="3" AutomationProperties.AutomationId="StatusBar">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusText}" AutomationProperties.AutomationId="Status.State" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock Text="{Binding TargetStatusText}" AutomationProperties.AutomationId="Status.Target" />
+            </StatusBarItem>
+            <Separator />
+            <!-- Updated only when the user verifies: no background polling (spec 11.2). -->
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center"
+                             Fill="{Binding WinAppDriver.Reachability, Converter={StaticResource ReachabilityBrush}}" />
+                    <TextBlock Text="{Binding WinAppDriver.Reachability, Converter={StaticResource ReachabilityText}}"
+                               AutomationProperties.AutomationId="Status.WinAppDriver" />
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

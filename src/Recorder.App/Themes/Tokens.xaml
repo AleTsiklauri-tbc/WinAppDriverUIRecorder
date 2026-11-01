@@ -1,0 +1,33 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Typography: Segoe UI Variable on Windows 11, Segoe UI elsewhere. Code and locators use Cascadia Mono. -->
+    <FontFamily x:Key="UiFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas</FontFamily>
+    <FontFamily x:Key="IconFontFamily">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+    <!-- 8 px spacing grid, 6 px corners. -->
+    <CornerRadius x:Key="Radius">6</CornerRadius>
+    <Thickness x:Key="Space1">8</Thickness>
+    <Thickness x:Key="Space2">16</Thickness>
+    <Thickness x:Key="Space3">24</Thickness>
+
+    <!-- Icon glyphs (Segoe MDL2 Assets code points, also present in Segoe Fluent Icons). -->
+    <sys:String x:Key="Glyph.Target">&#xE7F4;</sys:String>
+    <sys:String x:Key="Glyph.Record">&#xE7C8;</sys:String>
+    <sys:String x:Key="Glyph.Pause">&#xE769;</sys:String>
+    <sys:String x:Key="Glyph.Stop">&#xE71A;</sys:String>
+    <sys:String x:Key="Glyph.Assert">&#xE73E;</sys:String>
+    <sys:String x:Key="Glyph.Undo">&#xE7A7;</sys:String>
+    <sys:String x:Key="Glyph.Redo">&#xE7A6;</sys:String>
+    <sys:String x:Key="Glyph.Export">&#xE74E;</sys:String>
+    <sys:String x:Key="Glyph.ChevronDown">&#xE70D;</sys:String>
+    <sys:String x:Key="Glyph.Settings">&#xE713;</sys:String>
+    <sys:String x:Key="Glyph.Help">&#xE897;</sys:String>
+    <sys:String x:Key="Glyph.Error">&#xE783;</sys:String>
+    <sys:String x:Key="Glyph.Close">&#xE711;</sys:String>
+    <!-- Crosshair is not in Segoe MDL2 Assets; U+2316 POSITION INDICATOR from Segoe UI Symbol. -->
+    <sys:String x:Key="Glyph.Pick">&#x2316;</sys:String>
+
+</ResourceDictionary>

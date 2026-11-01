@@ -1,0 +1,44 @@
+<UserControl x:Class="Recorder.App.Views.ToastHostView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="clr-namespace:Recorder.App.Resources"
+             Focusable="False">
+    <!-- Non-blocking notifications. Errors show a plain message; details go only to the clipboard. -->
+    <ItemsControl ItemsSource="{Binding Toasts.Items}" AutomationProperties.AutomationId="Toasts">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate>
+                <Border Margin="0,8,0,0" Padding="12,8" MaxWidth="380" BorderThickness="1"
+                        CornerRadius="{StaticResource Radius}"
+                        Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        AutomationProperties.AutomationId="Toast">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" VerticalAlignment="Top" Margin="8,0,0,0" Padding="6"
+                                Command="{Binding DismissCommand}"
+                                ToolTip="{x:Static res:Strings.Toast_Dismiss}"
+                                AutomationProperties.Name="{x:Static res:Strings.Toast_Dismiss}"
+                                AutomationProperties.AutomationId="Toast.Dismiss">
+                            <TextBlock Style="{StaticResource IconTextStyle}" FontSize="10" Text="{StaticResource Glyph.Close}" />
+                        </Button>
+                        <StackPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0"
+                                           Style="{StaticResource IconTextStyle}"
+                                           Text="{StaticResource Glyph.Error}"
+                                           Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                           Visibility="{Binding IsError, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Style="{StaticResource BodyTextStyle}" Text="{Binding Message}"
+                                           AutomationProperties.AutomationId="Toast.Message" />
+                            </DockPanel>
+                            <Button HorizontalAlignment="Left" Margin="0,8,0,0"
+                                    Content="{x:Static res:Strings.Error_CopyDetails}"
+                                    Command="{Binding CopyDetailsCommand}"
+                                    Visibility="{Binding HasDetails, Converter={StaticResource BoolToVisibility}}"
+                                    AutomationProperties.AutomationId="Toast.CopyDetails" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

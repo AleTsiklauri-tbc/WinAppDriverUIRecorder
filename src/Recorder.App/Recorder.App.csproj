@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Recorder.App</RootNamespace>
+    <AssemblyName>WinFormsRecorder</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.3.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Serilog" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Recorder.Core\Recorder.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Strongly typed access to Strings.resx without a Visual Studio custom tool. WPF compiles XAML in a
+       temporary project that skips resource generation, so the class is generated before every compile. -->
+  <Target Name="GenerateStringsClass" BeforeTargets="CoreCompile"
+          Inputs="Resources\Strings.resx" Outputs="$(IntermediateOutputPath)Strings.Designer.cs">
+    <GenerateResource Sources="Resources\Strings.resx"
+                      OutputResources="$(IntermediateOutputPath)Strings.typed.resources"
+                      StronglyTypedLanguage="CSharp"
+                      StronglyTypedNamespace="Recorder.App.Resources"
+                      StronglyTypedClassName="Strings"
+                      StronglyTypedManifestPrefix="Recorder.App.Resources"
+                      StronglyTypedFileName="$(IntermediateOutputPath)Strings.Designer.cs"
+                      PublicClass="true"
+                      ExecuteAsTool="false"
+                      TrackFileAccess="false"
+                      NeverLockTypeAssemblies="true" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)Strings.Designer.cs" />
+      <FileWrites Include="$(IntermediateOutputPath)Strings.Designer.cs;$(IntermediateOutputPath)Strings.typed.resources" />
+    </ItemGroup>
+  </Target>
+
+</Project>

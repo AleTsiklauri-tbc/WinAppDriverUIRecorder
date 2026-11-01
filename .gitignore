@@ -1,0 +1,22 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+publish/
+TestResults/
+*.binlog
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+
+# Verify snapshot testing: only *.verified.* files are committed
+*.received.*
+
+# WebView2 user data created by the SampleApp next to its exe
+*.WebView2/
