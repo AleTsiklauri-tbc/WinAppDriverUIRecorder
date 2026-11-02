@@ -1,8 +1,9 @@
 # Architecture
 
-WinForms Recorder is a locator inspector and test recorder for .NET Framework WinForms apps automated with
-WinAppDriver. This document maps the legacy WinAppDriver UI Recorder to the new design, records decisions,
+WinForms Recorder is a locator inspector and test recorder for .NET Framework WinForms apps automated with WinAppDriver.
+This document maps the legacy WinAppDriver UI Recorder to the new design, records decisions,
 and keeps the **Findings**: verified facts about what UI Automation and WinAppDriver actually expose.
+"Spec n.n" means a section of [SPEC.txt](SPEC.txt), the original specification.
 
 ## 1. Constraints that shape the design
 
@@ -32,7 +33,8 @@ Build settings:
 
 - `src/` builds with `TreatWarningsAsErrors`, nullable reference types and `AnalysisLevel=latest-recommended`.
 - Package versions are central (`Directory.Packages.props`).
-- `NuGet.config` points only at the corporate Nexus group, because api.nuget.org is not reachable.
+- `NuGet.config` points only at the corporate Nexus group, because api.nuget.org is not reachable. Off that network,
+  the `WINFORMSRECORDER_NUGET_SOURCE` environment variable replaces it (D-41).
 - `global.json` pins SDK 10.0.403.
 
 ## 3. Runtime design
@@ -162,6 +164,7 @@ The legacy recorder is .NET Framework 4.6.1 WPF plus a native C++ DLL (`UIXPathL
 | D-38 | Elements in an unowned pop-up (a ComboBox drop-down list) get Desktop scope: the card says "1 match ✓" (not "in window") and Verify uses a Root session | A window session cannot see them (F-23) |
 | D-39 | The Elements list shows the variable name, the strategy badge and a tick; its accessible name is the variable name. Rename in the Inspector header (F2 from the list); leaving the box unchanged does not pin the name | Spec 11.2; names are what the user pastes into Java |
 | D-40 | The hover outline appears at once in neutral purple and takes its quality colour when the hover check answers | Spec 8.4 colours without slowing the 100 ms highlight |
+| D-41 | When the environment variable `WINFORMSRECORDER_NUGET_SOURCE` is set, `Directory.Build.props` makes it the only restore source (`RestoreSources`), replacing the Nexus feed in `NuGet.config` | The repo is continued on PCs outside the bank's network; nothing changes on it, and other repos on that PC are unaffected |
 
 ## 6. Guard rails in tests
 

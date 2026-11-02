@@ -1,0 +1,407 @@
+Build "WinForms Recorder" — a modern locator inspector and test recorder for WinAppDriver
+You are working in a repository that contains a copy of Microsoft's open-source WinAppDriver UI Recorder (MIT license) under legacy/UIRecorder/. Your job is to build a new tool, WinForms Recorder, that replaces it. Treat the legacy code as reference material to port specific ideas from, not as a codebase to patch.
+Read this entire document before writing any code. Then work through the phases in section 14 one at a time. After each phase, stop and report in the format given there. Do not start the next phase until I reply "continue".
+1. Who this is for and what "done" looks like
+User: a QA automation engineer automating a large legacy .NET Framework WinForms desktop application (a bank loan management system) with WinAppDriver + Java (Appium java-client) + Page Object Model. Today, finding one good locator takes minutes of Inspect.exe and trial and error, and the legacy recorder only produces absolute XPaths in C#, so recording a flow is pointless.
+Done means:
+I hover any control in the target app, press one hotkey, and in under a second I see the best stable locator, whether it is unique, why it was chosen, and a ready-to-paste Java line in my project's style.
+I record a flow (clicks, text entry, dropdown selections, checkboxes, tabs, menus, dialogs, grid cells), edit the steps, add assertions, and export a Page Object class and a test method that compile in my project with minimal edits.
+The tool never feels laggy, never misses a click, never leaves highlight artifacts on screen, never records what I type into password fields, and never sends data anywhere.
+The bar for UX is Playwright's codegen + Chrome DevTools element picker: obvious, fast, forgiving, keyboard-friendly.
+2. The legacy recorder: what it does and why it fails
+Facts from legacy/UIRecorder/ (verify them yourself while reading):
+Area	Legacy implementation	Problem
+App shell	WPF on .NET Framework 4.6.1. Most logic in MainWindow.xaml.cs code-behind with static fields; threads communicate via PostMessage to the window handle.	Hard to change, race-prone.
+Element capture	Native C++ DLL UIXPathLib/UiTreeWalk.cpp: UIA COM ElementFromPoint, then walks the RawViewWalker up to the desktop, emitting every ancestor with x/y/width/height, position() and RuntimeId. Re-run on a 125 ms hover timer (MouseKeyboardEventHandler.cs).	Slow, blocks, misses clicks, depends on a native DLL.
+Highlight	Draws a yellow rectangle directly on the desktop DC (GetDC(GetDesktopWindow())).	Leaves artifacts on screen.
+XPath	GenerateXPath.cs builds an absolute XPath from the desktop root. CheckAndFixNoneStaticValue blanks GUID-like values and collapses every WindowsForms10.* class name to starts-with(@ClassName,"WindowsForms10").	Absolute paths are slow for WinAppDriver to evaluate and break on any layout change. Collapsing the class name throws away the control type (EDIT vs BUTTON). No uniqueness check.
+Input	MouseKeyboardHook.cs installs WH_MOUSE_LL and WH_KEYBOARD_LL; keystrokes are stored base64 and decoded later.	Behaves like a keylogger (will be flagged by endpoint security), records passwords.
+Code generation	RecordedUiTask.cs / GenerateCSCode: C# only, desktopSession.FindElementByAbsoluteXPath(...), Thread.Sleep(100), legacy Mouse.MouseMove/DoubleClick API, Console.WriteLine per step.	Wrong language for me, no page objects, no structure, sleeps.
+Telemetry	App.xaml.cs ships Microsoft ApplicationInsights.	Unacceptable in a bank.
+Port (as ideas, rewritten in modern C#):
+GUID detection and the "dynamic digit suffix → starts-with" heuristic from GenerateXPath.cs, but keep the control-type part of WinForms class names (see 7.1).
+The general idea of ElementFromPoint → ancestor chain, re-implemented with FlaUI and caching.
+Do not port: UIXPathLib, ApplicationInsights, the keystroke decoding tables (s_Vk2String, s_Vk2CharPair), the static-state/PostMessage architecture, the C# code generator.
+Keep the legacy LICENSE and create THIRD_PARTY_NOTICES.md crediting the WinAppDriver UI Recorder (MIT) for any ported logic, plus every NuGet package used.
+3. Hard constraints
+Windows 10/11 x64. Runs without admin rights. Shipped as a dotnet publish self-contained single-file exe (corporate machines may not allow installing runtimes).
+No network access except one optional, user-configured WinAppDriver URL (default http://127.0.0.1:4723) used only by "Verify with WinAppDriver" (7.7). Non-loopback hosts are refused unless the user enables "Allow remote WinAppDriver" in Settings. No telemetry, update checks, crash reporters or analytics. Before reporting each phase, search the solution for HttpClient, ApplicationInsights, Telemetry, WebRequest and confirm the only hit is the WinAppDriver client.
+Privacy: never read, store, log or display the value of an element with IsPassword == true. Never record printable keystrokes (9.4).
+The UI thread never makes UI Automation calls. All UIA work runs on a dedicated worker (8.1).
+See what WinAppDriver sees: use UIA3 (COM UIAutomationClient) via FlaUI.UIA3. WinAppDriver is built on the same COM API.
+Target apps are .NET Framework 4.x WinForms. UIA support in .NET Framework WinForms differs from modern .NET WinForms, so the test SampleApp must target net48.
+Per-monitor DPI aware (PerMonitorV2). The overlay and all coordinates must be correct on mixed-DPI multi-monitor setups (e.g., laptop at 150% + external monitor at 100%).
+Same integrity level: if the target app runs elevated and the recorder doesn't, UIA calls fail. Detect this and tell the user (12.6).
+4. Tech stack
+Runtime: .NET 10 (LTS), net10.0-windows for every project in src/ and for the test projects. Do not target .NET 8 or 9 (both reach end of support on November 10, 2026). Do not target .NET Framework for the recorder. The only net48 project is tests/Recorder.SampleApp, because it imitates the real target app. The recorder inspects other processes through UI Automation, so its own runtime doesn't need to match the target's.
+UI: WPF + MVVM with CommunityToolkit.Mvvm. Use Microsoft.Extensions.Hosting for DI, configuration and logging.
+Look & feel: WPF's built-in Fluent theme (Application.ThemeMode; suppress the WPF0001 experimental warning if the compiler still raises it). Use WPF-UI (lepoco/wpfui) only for controls the built-in theme lacks, and say so in the phase report. Follow the Windows light/dark setting and accent colour.
+UI Automation: FlaUI.UIA3 (latest stable).
+Code view: AvalonEdit with Java and C# highlighting.
+Templates: Scriban.
+Diff preview: DiffPlex (+ DiffPlex.Wpf if suitable).
+Logging: Serilog with a local rolling file sink only.
+Tests: xUnit, Shouldly for assertions (do not use FluentAssertions v8+, its license is commercial), Verify.Xunit for snapshot tests of generated code, FlaUI for integration tests.
+Every dependency must be MIT, Apache-2.0 or BSD. List each one with its license in THIRD_PARTY_NOTICES.md.
+5. Solution layout
+WinFormsRecorder.sln
+src/
+  Recorder.Core/                 # no WPF references; all logic lives here
+    Model/                       # ElementSnapshot, LocatorSpec, LocatorCandidate, PageModel, RecordedStep, Recording
+    Automation/                  # UiaWorker, IUiaService (FlaUI), ElementSnapshotFactory, WindowEnumerator
+    Locators/                    # LocatorEngine, IdRules, NameRules, LocatorSpec renderer, UniquenessChecker, Refiner
+    Recording/                   # MouseHookService, SpecialKeyHookService, FocusValueTracker, StepBuilder, RecordingSession
+    CodeGen/                     # ProfileLoader, TemplateRenderer, NamingService, Transliterator, JavaFileMerger
+    Verification/                # WinAppDriverClient (the only networking code)
+    Persistence/                 # RecordingStore, SettingsStore (+ migrations), AutosaveService
+  Recorder.App/                  # WPF
+    Views/  ViewModels/  Overlay/  Controls/  Themes/  Resources/Strings.resx
+    Services/                    # HotkeyService, ClipboardService, ToastService, DialogService
+  Recorder.Profiles/             # built-in code-gen profiles (content files)
+    java-appium-pom/
+    csharp-appium/
+tests/
+  Recorder.Core.Tests/           # unit + snapshot tests
+  Recorder.IntegrationTests/     # launches SampleApp with FlaUI
+  Recorder.SampleApp/            # WinForms, net48 (see 13.1)
+  JavaCompileCheck/              # stub base classes + script to compile generated Java (Phase 4)
+legacy/UIRecorder/               # untouched reference
+docs/
+  ARCHITECTURE.md                # incl. a "Findings" section for spike results
+  TEMPLATES.md
+  USER_GUIDE.md
+  target-style/                  # MY real page object + test examples (section 15)
+6. Core model
+Use immutable records where it makes sense. Starting point (adjust names if you have a good reason, and say so):
+public sealed record ElementSnapshot(
+    string ControlType,              // UIA ControlType name as WinAppDriver uses it in XPath: "Edit", "Button", "ComboBox"...
+    string? AutomationId,
+    string? Name,
+    string? ClassName,
+    string? FrameworkId,             // "WinForm", "Win32", ...
+    bool IsPassword,
+    bool IsEnabled,
+    bool IsOffscreen,
+    PixelRect Bounds,                // physical pixels
+    int ProcessId,
+    nint NativeWindowHandle,
+    WindowInfo TopLevelWindow,       // hwnd, title, AutomationId, ClassName
+    IReadOnlyList<AncestorInfo> Ancestors,   // nearest first, excluding the desktop
+    IReadOnlyList<string> SupportedPatterns,
+    string? Value,                   // ValuePattern value; ALWAYS null when IsPassword
+    string? LabelText,               // LabeledBy, or nearest-label heuristic (7.8)
+    int[] RuntimeIdForSessionOnly,   // used to re-find the element during this session; NEVER emitted in code
+    DateTimeOffset CapturedAt);
+public enum LocatorStrategy { AccessibilityId, Name, ClassName, XPath }
+public enum Stability { High, Medium, Low }
+public enum LocatorScope { Window, Desktop }
+// Locators are built as a small structured AST, evaluated against UIA directly,
+// and only rendered to strings at the end. Never parse XPath strings.
+public sealed record LocatorSpec(IReadOnlyList<LocatorStep> Steps);              // e.g. [anchor, target]
+public sealed record LocatorStep(Axis Axis, string? ControlType, IReadOnlyList<Predicate> Predicates, int? Index);
+public enum Axis { Descendant, Child }
+public abstract record Predicate;  // AttrEquals(attr, value), AttrStartsWith(attr, prefix), AttrContains(attr, part)
+public sealed record LocatorCandidate(
+    LocatorStrategy Strategy,
+    LocatorSpec Spec,
+    string RenderedValue,            // e.g. "txtAmount" or "//Pane[@AutomationId='pnlSearch']//Edit[@Name='Amount']"
+    LocatorScope Scope,
+    Stability Stability,
+    int Score,
+    int MatchCount,                  // -1 = not checked (timed out)
+    IReadOnlyList<string> Warnings,
+    string Explanation);             // one plain sentence shown in the UI
+Pages and steps:
+PageModel — one per top-level form: ClassName (e.g., LoanSearchPage), window identification (title / AutomationId), and PageElements (VariableName, Snapshot, Candidates, SelectedCandidate, UserRenamed). Elements are deduplicated within a page (same RuntimeId in this session, or same selected locator).
+RecordedStep — abstract record with Id, At, ElementRef Target (points at a PageElement), Comment, Warnings. Kinds:Click, DoubleClick, RightClick, SetText(value | TestDataKey), ClearText, SelectOption(text), SetChecked(bool), SelectTab(name), MenuPath(IReadOnlyList<string>), PressKeys(chord) (e.g., Enter, Ctrl+S), GridCellClick(grid, rowIndex, columnHeader), SwitchWindow(windowRef), AssertVisible, AssertEnabled(bool), AssertText(expected), AssertValue(expected), AssertChecked(bool).
+Recording — SchemaVersion, target process name, pages, steps, created/modified timestamps.
+7. Locator engine (the heart of the tool — spend the most care here)
+7.1 WinForms / WinAppDriver facts to rely on
+Write an integration spike against the SampleApp to confirm each of these before building on it. Record results in docs/ARCHITECTURE.md → "Findings". If a fact turns out wrong, adapt the rule and tell me in the phase report.
+WinForms exposes Control.Name (the designer name) as the UIA AutomationId. For named controls, AutomationId is the best locator.
+WinForms class names look like WindowsForms10.EDIT.app.0.141b42a_r6_ad1. The part after .app.0. varies between builds/processes. The stable prefix is WindowsForms10.<WIN32CLASS> (e.g., WindowsForms10.EDIT, WindowsForms10.BUTTON, WindowsForms10.COMBOBOX, WindowsForms10.Window). Keep that prefix; never collapse to just WindowsForms10.
+Controls without a Name may expose an empty or numeric AutomationId. Treat numeric ones as possibly unstable.
+Menus (MenuStrip dropdowns), ContextMenuStrip, ComboBox dropdown lists, tooltips, MessageBox and modal forms are separate top-level windows. An app-window session in WinAppDriver may not find them; they may need a window switch or a desktop ("Root") session.
+DataGridView rows and cells get generated names (something like Row 3 and <ColumnHeader> Row 3). Confirm the exact format in the SampleApp.
+Name on labels/buttons is visible UI text: it changes when wording or app language changes. My app's UI text is largely Georgian.
+WinAppDriver locator strategies map as: accessibility id → AutomationId, name → Name, class name → ClassName, xpath → XPath, id → RuntimeId (volatile — never generate), tag name → LocalizedControlType (locale-dependent — never generate).
+7.2 Candidate generation
+For the captured element, generate candidates in this order, then sort by score:
+AccessibilityId — if it passes the ID rules (7.3). Stability High. Explanation: "Comes from the control's name in the app's code, so it survives layout and text changes."
+Name — if it passes the text rules (7.4). Stability Medium (or Low if it looks dynamic).
+ClassName — only when the class name is not a WinForms/WPF generated one (useful for third-party controls with stable class names) and it is unique. Medium.
+Anchored XPath — nearest ancestor with a High-stability AutomationId as anchor, then the target by ControlType + its best attribute://*[@AutomationId='pnlSearch']//Edit[@Name='Amount']. Medium.
+Window-scoped XPath with index — ControlType + stable class prefix + index within the nearest anchor or window://Window[@AutomationId='frmLoan']//Edit[starts-with(@ClassName,'WindowsForms10.EDIT')][2]. Low, warning "Position-based — breaks if controls are added or reordered."
+Absolute XPath from the window root — generated only on demand in the Inspector's "Advanced" section. Never auto-selected. Low, red.
+7.3 AutomationId rules
+Reject: empty/whitespace, GUID-like (port the legacy regex), values containing the process id or a window handle.
+Downgrade to Low with warning "Numeric ID — may change between runs. Restart the app and re-capture to confirm.": purely numeric.
+Long numeric suffix (e.g., row_48213, item.000123): offer an AttrStartsWith XPath variant using the non-digit prefix (port the legacy regex idea), Medium.
+Designer default names (textBox12, button3, comboBox1, dataGridView1): accept as High (they are compiled in and stable) but add an informational note: "Designer default name — stable, but ask the developers to give it a meaningful name."
+7.4 Name rules
+Reject: empty/whitespace, equal to the control type, contains a newline, longer than 80 characters.
+Downgrade to Low with warning "Looks dynamic (contains a number/date/amount)": matches patterns for dates, times, currency amounts, long digit runs, GUIDs.
+Non-Latin text (Georgian, Cyrillic): keep, with warning "UI text — breaks if the wording or the app language changes."
+7.5 Uniqueness, refinement and scoring
+For every candidate, evaluate its LocatorSpec via UIA (on the worker thread) within the target's top-level window and count matches. Use UIA property conditions for single-attribute strategies; for multi-step specs, evaluate step by step (find anchors, then descendants under each anchor, apply predicates and index). Do not implement a general XPath engine; only evaluate the AST you generate.
+Budget: 1500 ms per element in total. If exceeded, set MatchCount = -1 and show "Not checked — large tree. Use Verify with WinAppDriver."
+If a candidate has more than one match, try refinements in order until unique: add ControlType → add nearest anchor ancestor → add a second attribute → add index. Each refinement becomes its own candidate with an explanation of what was added.
+Score: start from strategy base (Id 100, Name 70, ClassName 50, Anchored XPath 45, Indexed XPath 20, Absolute 0); unique +50; multiple −80; each warning −10; Low stability −30. The top-scoring unique candidate is auto-selected.
+Ancestry and match counting must reflect the same tree WinAppDriver uses. The legacy code used the RawView; start with RawView, and add an integration test (Phase 2) that compares our counts with WinAppDriver's counts on the SampleApp.
+7.6 Rendering rules
+XPath tags are UIA ControlType names exactly as WinAppDriver uses them (Button, Edit, Text, ComboBox, List, ListItem, CheckBox, RadioButton, Tab, TabItem, Menu, MenuBar, MenuItem, DataGrid, DataItem, Table, Tree, TreeItem, Pane, Window, Group, ToolBar, StatusBar, Custom, Header, HeaderItem, Hyperlink, Image, ScrollBar, Spinner, SplitButton, ProgressBar, TitleBar, ToolTip, Document, Calendar, Slider, Thumb, Separator).
+Attributes: @AutomationId, @Name, @ClassName exactly.
+XPath 1.0 literals: single quotes by default; double quotes if the value contains '; concat() if it contains both.
+Always start with //, never with a /Pane/Pane/... chain from the desktop (except the on-demand absolute XPath).
+Keep XPaths to anchor + target. Add intermediate steps only if needed for uniqueness.
+7.7 Verify with WinAppDriver (optional, ground truth)
+Button in the Inspector: "Verify with WinAppDriver".
+Minimal client over JSON Wire Protocol (base URL and optional /wd/hub prefix configurable):POST /session with {"desiredCapabilities":{"appTopLevelWindow":"0x<hex hwnd>"}} (or {"app":"Root"} for elements in other top-level windows) → POST /session/{id}/elements with {"using":"accessibility id"|"name"|"class name"|"xpath","value":...} for each candidate → DELETE /session/{id}.
+Show per candidate: match count and time in ms (this exposes slow XPaths). Timeout 10 s.
+If unreachable: "WinAppDriver isn't running at http://127.0.0.1:4723. Start WinAppDriver.exe (Developer Mode must be on) or change the address in Settings."
+7.8 Label association (for naming and display only)
+Use LabeledBy if present. Otherwise find the nearest Text control in the same parent whose bounds are left of the target (same row, vertical overlap ≥ 50%) or directly above it, within 250 px (DPI-scaled). Use it for variable names and step descriptions only, never for locators.
+8. Capture engine
+8.1 Threading
+One dedicated thread, UiaWorker, owns the UIA3Automation instance (MTA). Work is submitted through a Channel<T>; every request has a CancellationToken. Hover requests are latest-wins: a newer one cancels older pending ones.
+Fetch properties with a CacheRequest so one element costs one cross-process round trip, not ten.
+Guard every UIA call with a timeout (default 2 s). A hung target app must never freeze the recorder.
+Ignore elements whose ProcessId equals the recorder's own process.
+8.2 Target app
+Target selector lists visible top-level windows (icon, title, process name), grouped by process, with a search box and refresh.
+Remember the last target by process name. If the target closes, show "<process> closed. Waiting for it to start again…" and re-attach automatically when it reappears.
+When a target is selected, only elements belonging to that process are highlighted, captured or recorded.
+8.3 Hover pipeline (Pick mode)
+In Pick mode, poll the cursor position every ~30 ms (no hook needed for hovering), debounce 40 ms, then ElementFromPoint → snapshot → overlay.
+Performance budget on the SampleApp: hover → highlight p95 < 100 ms. Log timings at Debug level.
+8.4 Overlay
+A borderless, transparent, topmost WPF window with extended styles WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW: never takes focus, never receives clicks, hidden from Alt+Tab.
+Draws a 2 px border around the element (physical pixels converted correctly for the monitor's DPI) and a small label chip next to it, flipped to stay on screen, e.g. Edit · txtAmount · unique.
+Colours: green = unique High-stability locator; amber = best locator is Medium (e.g., Name); red = no unique locator; blue dashed = already captured. Also distinguish by an icon in the chip so it is not colour-only.
+No artifacts: the overlay is the only thing that draws, and it hides when the cursor leaves the target app or Pick mode ends.
+8.5 Capturing
+Global hotkey (default Ctrl+Shift+X, configurable, registered with RegisterHotKey): capture the element under the cursor in any mode. If the hotkey is taken, show which one failed and let me pick another in Settings.
+Pick button (crosshair): like DevTools. The next left click on the target app is captured and not passed to the app (the low-level mouse hook returns non-zero for that one click only). Esc cancels.
+After a capture: add to Elements (deduplicated), select it in the Inspector, toast "Captured amountInput".
+9. Recording engine
+9.1 Mouse hook
+WH_MOUSE_LL is installed only while Recording or in Pick mode.
+The hook callback copies (point, button, flags, timestamp) into a lock-free channel and returns immediately (target < 1 ms). Windows silently removes low-level hooks that are too slow, so detect hook loss (no events while the cursor moves over the target) and reinstall, with a log entry.
+9.2 Resolving the clicked element
+Clicks often change the UI before we can inspect it (a button opens a form). So:
+Keep a hover cache while recording (same pipeline as 8.3).
+On mouse-down, if the pointer is inside the cached element's bounds and the cache is < 250 ms old, use the cached snapshot.
+Otherwise resolve immediately on the worker. If the resolved element's bounds don't contain the click point, keep the step but add the warning "Element changed during the click — check this step."
+9.3 Text entry without keylogging
+Subscribe to UIA FocusChanged events for the target process.
+On focus-in of an element supporting ValuePattern (and not a password): remember its current value.
+On focus-out, before the next click elsewhere, or when Recording pauses/stops: read the value again. If it changed → SetText(newValue). If it became empty → ClearText.
+IsPassword == true → emit SetText(TestDataKey: "<variableName>") and never call ValuePattern.Value on it.
+Setting "Mask all typed values": every SetText becomes a test-data key instead of a literal.
+9.4 Special keys (optional, isolated)
+Setting "Record Enter, Tab, Esc and shortcuts" (default on).
+Implemented with WH_KEYBOARD_LL in one class whose callback inspects the virtual-key code only and:
+records Enter, Tab, Esc, F1–F12, Delete, arrows and Ctrl/Alt chords (Ctrl+S) as PressKeys;
+drops all printable characters inside the callback without storing them anywhere;
+records nothing when the focused element is a password field.
+Put a header comment in that class stating these privacy guarantees.
+If installing the hook fails or is blocked by security software, disable the feature, show "Shortcut recording is unavailable on this machine. Text and clicks still record normally.", and continue.
+9.5 Turning raw events into meaningful steps (StepBuilder)
+Unit-test every rule with synthetic event streams.
+Down + Up on the same element, movement < 8 px → Click. A second click on the same element within the system double-click time → replace with DoubleClick. Right button → RightClick.
+Click on CheckBox / RadioButton → SetChecked(state read ~150 ms after the click).
+Click on TabItem → SelectTab(name).
+Click on a ComboBox then on a ListItem in its dropdown → one SelectOption(itemText) step on the ComboBox. Also catch selection changes made with the keyboard (via value/selection change on focus-out).
+Sequence of MenuItem clicks (menu bar → submenu → item) → one MenuPath(["File","Export","PDF"]).
+Click on a DataGrid cell → GridCellClick(grid, rowIndex, columnHeader) targeting the grid element.
+First interaction with a different top-level window of the same process (modal form, MessageBox) → insert SwitchWindow before it automatically. When the user clicks back in the main window after the dialog closed → insert SwitchWindow back.
+Ignore: clicks in other processes, clicks on the recorder or its mini-bar, scroll wheel and drags (setting to record scrolls as comments).
+9.6 Assertions
+Global hotkey Ctrl+Shift+A (or the Assert button) enters Assert mode: the next click on the target app is swallowed and opens a small picker next to the cursor listing options valid for that element, pre-filled with current values: "Is visible", "Is enabled / disabled", "Text equals “…”", "Value equals “…”", "Is checked / unchecked".
+Enter confirms the highlighted option, Esc cancels.
+9.7 Waits
+The model contains no sleeps. How waiting is expressed is decided by the code-gen profile (explicit waits in my framework).
+10. Code generation
+10.1 Profiles
+A profile is a folder containing profile.json and Scriban templates:
+page.sbn — full Page Object class
+element.sbn — one locator field/declaration
+action.<StepKind>.sbn — one per step kind (action.Click.sbn, action.SetText.sbn, action.MenuPath.sbn, …)
+test.sbn — test class/method for a recording
+snippet.sbn — single-line locator for the clipboard
+profile.json example (the Java one will be derived from my files, section 15):
+{
+  "name": "Java · Appium · Page Objects",
+  "language": "java",
+  "fileExtension": ".java",
+  "package": "com.example.pages",
+  "testPackage": "com.example.tests",
+  "basePageClass": "BasePage",
+  "pageClassSuffix": "Page",
+  "fieldCase": "camel",
+  "methodCase": "camel",
+  "indent": "    ",
+  "elementSuffixByControlType": {
+    "Edit": "Input", "Button": "Button", "ComboBox": "Dropdown", "CheckBox": "Checkbox",
+    "RadioButton": "Radio", "DataGrid": "Grid", "Table": "Grid", "TabItem": "Tab",
+    "Text": "Label", "MenuItem": "MenuItem", "List": "List", "Tree": "Tree"
+  },
+  "stripIdPrefixes": ["txt", "btn", "cmb", "cbo", "chk", "rb", "lbl", "dgv", "grd", "tab", "pnl", "frm"],
+  "locatorFormats": {
+    "AccessibilityId": "AppiumBy.accessibilityId({value})",
+    "Name": "By.name({value})",
+    "ClassName": "By.className({value})",
+    "XPath": "By.xpath({value})"
+  },
+  "testDataExpression": "testData.get(\"{key}\")",
+  "imports": ["org.openqa.selenium.By", "io.appium.java_client.AppiumBy"]
+}
+Built-in profiles: java-appium-pom (default) and csharp-appium.
+User profiles live in %APPDATA%\WinFormsRecorder\profiles\ and override built-ins with the same name. Provide "Duplicate profile to edit" in Settings. Hot-reload on file change.
+Template errors show inline in the code panel ("page.sbn line 12: unknown variable 'element.nam'"), never crash the app.
+Document the full template model with examples in docs/TEMPLATES.md.
+10.2 Naming
+Variable name source, in order: AutomationId (minus configured prefixes) → LabelText → Name → ControlType + index.
+Then: transliterate → remove invalid characters → apply case → add control-type suffix (unless already present) → avoid Java/C# keywords → de-duplicate within the page with 2, 3, ….
+Transliteration (pluggable ITransliterator, Georgian and Russian built in). Georgian table (national system, no apostrophes):
+ა a  ბ b  გ g  დ d  ე e  ვ v  ზ z  თ t  ი i  კ k  ლ l  მ m  ნ n  ო o  პ p  ჟ zh  რ r
+ს s  ტ t  უ u  ფ p  ქ k  ღ gh  ყ q  შ sh  ჩ ch  ც ts  ძ dz  წ ts  ჭ ch  ხ kh  ჯ j  ჰ h
+Example: button "ძებნა" with no AutomationId → dzebnaButton.
+Page class name: top-level window AutomationId (minus frm) → else window title transliterated → PascalCase + Page (e.g., frmLoanSearch → LoanSearchPage). Both are editable in the UI and edits stick (UserRenamed).
+10.3 Escaping and encoding
+Correct Java/C# string escaping for locator values. Keep non-ASCII characters as-is; write files as UTF-8 without BOM.
+10.4 Outputs
+Code panel tabs: Page objects (one sub-tab per page), Test, Selected element. Live update, debounced 150 ms, when steps/elements/selected locators change.
+Actions: Copy, Save as…, Merge into existing file…
+10.5 Merge into an existing Java file
+Text-based, conservative merge driven by profile regexes: detect existing locator fields (by rendered locator value) and methods (by name); insert only new fields after the last existing locator field and new methods before the class's closing brace.
+Always show a side-by-side diff preview (DiffPlex) with "Apply" / "Cancel". On Apply, write <file>.bak first.
+If the file can't be understood confidently, say so and offer "Copy new members to clipboard" instead.
+11. UI / UX specification
+11.1 Principles
+One obvious next action at every moment.
+Visible feedback within 100 ms for every action.
+No modal dialogs during recording.
+Everything reachable by keyboard; every shortcut shown in its tooltip.
+Never lose work (autosave, undo/redo).
+Plain language. Never show a stack trace; log it and show a human message with "Copy details".
+11.2 Main window
+Minimum 1000×640, remembers size, position and pane splits.
+Toolbar (left → right): Target selector (shows app icon + window title + process; opens the searchable window list) · Pick (crosshair) · Record ● (F9) · Pause (F10) · Stop · Assert (Ctrl+Shift+A) · spacer · Undo · Redo · Export ▾ · Settings ⚙ · ? (shortcut cheat sheet).
+Left pane (resizable, ~300 px), two tabs:
+Steps — numbered list. Each row: icon for the step kind, a human sentence ("Type “5000” into Amount", "Select “GEL” in Currency", "Click File › Export › PDF"), the target's variable-name chip, a warning icon if the step has warnings. Hover shows Edit/Delete. Drag to reorder (also Alt+↑/↓), Del deletes, Ctrl+D duplicates, Enter edits, multi-select with Shift/Ctrl.
+Elements — grouped by page. Each row: variable name (rename inline with F2), strategy badge (ID / Name / Class / XPath, colour + text), uniqueness tick. Filter box at the top (Ctrl+F).
+Center pane — Inspector for the selected element or step:
+Header: variable name (editable), control type, page.
+Best locator card: strategy badge, value in monospace, stability meter, match count ("1 match in window ✓" / "3 matches ✗"), one-sentence explanation, buttons: Copy Java line (Ctrl+C), Highlight matches (outlines every match on screen for 1.5 s), Verify with WinAppDriver.
+Other locators — the remaining candidates with radio buttons to choose; warnings inline. Choosing one updates the code immediately.
+Advanced (collapsed): absolute XPath (generated on expand), full property table (copy any cell), ancestor breadcrumb (click an ancestor to inspect/capture it), supported patterns.
+Right or bottom pane — Code (user can toggle position): AvalonEdit read-only with syntax highlighting, tabs as in 10.4, Copy all / Save as / Merge.
+Status bar: state (Idle / Picking / Recording ● 00:42 · 12 steps / Paused), WinAppDriver reachability dot (checked only when the user opens Verify or Settings — no background polling), target app name.
+11.3 First run and empty states
+Center pane shows three steps with the relevant control highlighted:
+"Choose the app you want to automate" → Target selector pulses gently.
+"Hover a control and press Ctrl+Shift+X to get its locator"
+"Or press F9 to record a flow"
+Empty Steps tab: "No steps yet. Press F9 and use the app as you normally would." Empty Elements tab: "Captured controls appear here, grouped by window."
+11.4 Recording mini-bar
+When recording starts, the main window minimizes (setting) and a compact always-on-top pill appears at top-center of the monitor showing the target app: pulsing red dot, timer, step count, the last step's text (truncated), buttons Pause, Assert, Stop. Draggable, remembers its position, 60% opacity when the cursor is not over it. It is excluded from recording. Stop restores the main window with the Steps tab focused and the last step selected.
+11.5 Toasts and banners
+Toasts: non-blocking, 2.5 s, bottom-right of the main window (or under the mini-bar while recording): "Captured amountInput", "Copied", "Step deleted · Undo".
+Banners (top of the main window, dismissible) for persistent conditions: target closed, elevation mismatch, shortcut recording unavailable, autosave restore available.
+11.6 Undo/redo
+All edits to the recording (steps, names, chosen locators, deletions, reorders) go through a command stack. Ctrl+Z / Ctrl+Y.
+11.7 Visual style
+Fluent, system light/dark and accent colour. Segoe UI Variable for UI text; Cascadia Mono (fallback Consolas) for locators and code. 8 px spacing grid, 6 px corner radius. Strategy badge colours match the overlay colours. Animations ≤ 150 ms and disabled when Windows "Animation effects" is off.
+11.8 The recorder must itself be automatable and accessible
+AutomationProperties.Name and AutomationId on every interactive control, logical tab order, visible focus indicators, text contrast ≥ 4.5:1.
+11.9 Keyboard shortcuts (all configurable)
+Shortcut	Action	Scope
+F9	Start / stop recording	Global
+F10	Pause / resume	Global
+Ctrl+Shift+X	Capture element under cursor	Global
+Ctrl+Shift+A	Assert mode	Global
+Esc	Cancel Pick / Assert mode	Global while in that mode
+Ctrl+C	Copy selected element's code line	App
+Ctrl+Shift+C	Copy current page object	App
+Ctrl+Z / Ctrl+Y	Undo / redo	App
+Del, F2, Ctrl+D, Alt+↑/↓	Delete, rename, duplicate, move step	App
+Ctrl+S / Ctrl+O / Ctrl+E	Save / open recording, export	App
+Ctrl+F	Filter elements	App
+Only the "Global" ones use RegisterHotKey. A ? button opens a cheat-sheet overlay listing all of them.
+11.10 Microcopy
+All user-facing strings go in Resources/Strings.resx. Tone: short, plain, specific, no blame. Examples to use as-is:
+"Choose the app you want to automate"
+"Hover a control and press Ctrl+Shift+X"
+"No unique locator found. Pick one from Other locators, or ask the developers to set a Name on this control."
+"This app runs as administrator. Restart WinForms Recorder as administrator to inspect it."
+"LMS.exe closed. Waiting for it to start again…"
+"Restore your unsaved recording from 14:32?"
+12. Settings, persistence, logging, errors
+Settings: %APPDATA%\WinFormsRecorder\settings.json with SchemaVersion and migrations. Settings UI sections: General (minimize on record, code pane position, theme override), Hotkeys (conflict detection), Recording (special keys, mask typed values, record scrolls), Code generation (active profile, open profiles folder, duplicate profile), WinAppDriver (URL, path prefix, allow remote), Advanced (log level, UIA timeout).
+Recordings: *.wfrec.json, schema-versioned, human-readable. Save / Open / recent files.
+Autosave: every change (debounced 2 s) to %LOCALAPPDATA%\WinFormsRecorder\autosave\. On start, if an autosave is newer than the last explicit save, show the restore banner.
+Logs: %LOCALAPPDATA%\WinFormsRecorder\logs\, rolling, kept 7 days. Never log SetText values unless "Verbose logs" is on, and never password-related data under any setting.
+Global error handling: DispatcherUnhandledException, TaskScheduler.UnobservedTaskException, AppDomain.UnhandledException → log + friendly toast; keep running when possible.
+Elevation mismatch: detect when the target process is elevated and the recorder isn't (token elevation check, or UIA access-denied errors) → banner with a "Restart as administrator" button.
+Robustness: a busy or hung target app must never freeze the recorder (timeouts from 8.1). Stale elements (disposed controls) are handled silently.
+13. Testing
+13.1 Recorder.SampleApp (WinForms, net48)
+Main form plus one modal dialog, containing:
+Named TextBox (txtAmount), unnamed TextBox, password TextBox (UseSystemPasswordChar)
+ComboBox (DropDownList) with currencies, CheckBox, two RadioButtons in a GroupBox
+Buttons: one opening a MessageBox, one opening the modal dialog, one "Freeze 5 s" (blocks the UI thread, to test recorder robustness)
+MenuStrip with nested items (File › Export › PDF), ContextMenuStrip on the grid
+DataGridView with 5 rows and 4 columns
+TabControl with 2 tabs
+Georgian UI text: a label "თანხა" next to the unnamed TextBox, a button "ძებნა" with no Name
+A label showing the current time (dynamic Name)
+Two panels each containing a button named differently but with the same text "Save" (tests uniqueness refinement)
+A UserControl with no Name containing a TextBox
+13.2 Unit tests (Recorder.Core.Tests)
+Candidate ranking and scoring; ID and Name rules; LocatorSpec rendering and XPath literal escaping; naming and transliteration; StepBuilder coalescing with synthetic event streams (click/double-click, combo selection, menu path, window switches, ignored processes); template rendering snapshot tests (Verify); settings migration; Java merge on sample files.
+13.3 Integration tests (Recorder.IntegrationTests, launch SampleApp via FlaUI)
+Every SampleApp control gets a unique locator; named controls get AccessibilityId/High.
+The two "Save" buttons get distinct, unique, refined locators.
+The "ძებნა" button gets a Name locator with the UI-text warning and variable name dzebnaButton.
+MessageBox and modal dialog are detected as separate top-level windows.
+The password box's value is never read (spy on the UIA service).
+Snapshot p95 < 100 ms and uniqueness check < 300 ms on SampleApp (log the numbers).
+[Trait("Requires","WinAppDriver")] tests (skipped when WinAppDriver isn't reachable): our match counts equal WinAppDriver's for every generated candidate.
+14. Delivery phases
+After each phase, reply with exactly this report, then STOP:
+Built — bullet list
+Files — added/changed
+Verify it yourself — exact manual steps, ≤ 5 minutes
+Tests — pass/fail counts
+Decisions & open questions — anything you chose that I should check, and any fact from 7.1 that turned out different
+Phase 0 — Audit and skeletonRead all of legacy/UIRecorder/. Write docs/ARCHITECTURE.md (old → new mapping, what is ported, what is dropped and why). Create the solution, projects, SampleApp, empty WPF shell with theme and the first-run state, Strings.resx, DI host, logging, global error handling.Accept: dotnet build and dotnet test succeed; zero warnings in src/ (TreatWarningsAsErrors); app launches showing the first-run state; no networking/telemetry packages.
+Phase 1 — Capture and inspectorUiaWorker, ElementSnapshotFactory with CacheRequest, target selector and auto re-attach, overlay, Pick mode (polling + click-to-capture), global capture hotkey, Elements list, Inspector (properties, ancestors, Advanced).Accept: hovering every SampleApp control highlights the correct rectangle at 100% and 150% scaling on two monitors; no screen artifacts; the recorder stays responsive while SampleApp is frozen by "Freeze 5 s".
+Phase 2 — Locator engineLocatorSpec AST, candidates, rules, uniqueness, refinement, scoring, explanations, Highlight matches, Verify with WinAppDriver.Accept: all integration tests in 13.3 pass (WinAppDriver ones may be skipped if it isn't running, but I will run them).
+Phase 3 — RecordingMouse hook, hover cache, focus/value text capture, optional special-key hook, StepBuilder rules, window switches, Steps list with editing, undo/redo, pause, assertions, mini-bar.Accept: recording this SampleApp flow produces exactly these steps: type amount → type password → select "GEL" → tick checkbox → File › Export › PDF → open dialog → click OK on MessageBox → click grid cell (row 2, "Status"). A test greps the saved recording and logs and confirms the password text appears nowhere.
+Phase 4 — Code generationProfiles, Scriban templates, naming/transliteration, Java default profile derived from docs/target-style/, C# profile, live code panel, Save/Copy/Merge with diff.Accept: code generated from the Phase 3 recording compiles against stub base classes in tests/JavaCompileCheck/ (stubs mirror the signatures in docs/target-style/), via check-java.ps1 that runs javac when a JDK is available. Snapshot tests cover every step kind.
+Phase 5 — UX polishToasts and banners, shortcut cheat sheet, empty states, autosave/restore, full Settings UI, hotkey conflict handling, accessibility pass, light/dark pass, all microcopy from 11.10, performance check against the budgets.
+Phase 6 — Packaging and docsSelf-contained single-file publish profile (win-x64), README.md (what it is, 3-step quick start, screenshot placeholders), docs/USER_GUIDE.md (one page), docs/TEMPLATES.md, THIRD_PARTY_NOTICES.md.
+15. MY PROJECT PROFILE — fill in before Phase 4
+Copilot: if this section still contains <FILL> when you reach Phase 4, stop and ask me. The files in docs/target-style/ win over anything written here if they disagree.
+Java version and build tool: <FILL: e.g. Java 17, Maven>
+Appium java-client version: <FILL> (decides AppiumBy.accessibilityId vs MobileBy.AccessibilityId vs findElementByAccessibilityId)
+Driver type: <FILL: e.g. WindowsDriver / RemoteWebDriver>
+Test framework: <FILL: TestNG / JUnit 5>
+Base page class and its helper methods: <FILL: e.g. BasePage with click(By), type(By, String), select(By, String), waitVisible(By)>
+How locators are declared: <FILL: e.g. private final By amountInput = AppiumBy.accessibilityId("txtAmount");>
+Page method style: <FILL: fluent returning this / void / returning the next page>
+How windows/dialogs are switched: <FILL>
+How test data is accessed: <FILL>
+Packages for pages and tests: <FILL>
+Naming conventions: <FILL>
+Example files: one real page object and one real test (sensitive data removed) are in docs/target-style/.
+16. Non-goals for v1
+Playback engine, image/OCR-based locators, drag-and-drop recording, UWP/WPF/web-specific features, any cloud or sharing features.
+17. Engineering rules for you
+Don't guess UIA or WinAppDriver behaviour. When unsure, write a spike test against the SampleApp, observe, implement, and log the result under "Findings" in docs/ARCHITECTURE.md.
+No TODOs, stubs, or "simplified for now" in a phase you report as done. If something can't be done, say so in the report.
+Classes ≤ ~300 lines. No logic in code-behind beyond pure view concerns. Async all the way; never .Result/.Wait() on the UI thread. CancellationToken on every UIA call path.
+Nullable reference types on, analyzers on, TreatWarningsAsErrors in src/.
+Don't modify anything under legacy/.
+Prefer boring, well-known solutions. Ask me before any decision that would be expensive to reverse.

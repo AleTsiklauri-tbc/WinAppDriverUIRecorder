@@ -11,4 +11,10 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
+
+  <!-- NuGet.config points at the corporate Nexus feed, which is unreachable from outside that network. There, set the
+       environment variable WINFORMSRECORDER_NUGET_SOURCE (e.g. https://api.nuget.org/v3/index.json) to restore from it instead (D-41). -->
+  <PropertyGroup Condition="'$(WINFORMSRECORDER_NUGET_SOURCE)' != ''">
+    <RestoreSources>$(WINFORMSRECORDER_NUGET_SOURCE)</RestoreSources>
+  </PropertyGroup>
 </Project>

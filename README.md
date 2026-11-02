@@ -19,7 +19,9 @@ It replaces Microsoft's WinAppDriver UI Recorder. The original is kept unmodifie
 - Windows 10/11 or Windows Server 2022, x64.
 - No admin rights needed.
 - .NET SDK **10.0.403**; see [global.json](global.json). A per-user install is fine.
-- The corporate NuGet group. [NuGet.config](NuGet.config) points only at it, because api.nuget.org is not reachable from here.
+- A NuGet feed. [NuGet.config](NuGet.config) points only at the corporate Nexus group, because api.nuget.org is
+  blocked on the corporate network. Anywhere else, set `WINFORMSRECORDER_NUGET_SOURCE` to
+  `https://api.nuget.org/v3/index.json` once for your user (see [docs/HANDOFF.md](docs/HANDOFF.md)).
 
 **Install the SDK per user** if `dotnet --list-sdks` does not show 10.0.x. Compare the hash with the
 `sha512` of `dotnet-sdk-win-x64.zip` in the
@@ -81,6 +83,9 @@ that one open and don't click it, or the run fails:
 | `src/Recorder.App` | WPF app (`WinFormsRecorder.exe`) |
 | `tests/` | Unit tests, FlaUI integration tests, and `Recorder.SampleApp`, a .NET Framework 4.8 app imitating LMS |
 | `docs/ARCHITECTURE.md` | Design, legacy → new mapping, decisions and **Findings** (verified UIA facts) |
+| `docs/HANDOFF.md` | Where the work stands, what comes next, and how to set up another PC |
+| `docs/SPEC.txt` | The original specification, verbatim |
+| `AGENTS.md` | Rules and commands for AI coding assistants |
 | `docs/target-style/` | Real Page/Steps/Test files the generated Java must match |
 | `eng/list-licenses.ps1` | License inventory for [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
