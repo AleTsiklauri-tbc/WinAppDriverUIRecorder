@@ -1,6 +1,6 @@
 # Handoff
 
-Where WinForms Recorder stands and how to continue it on any PC. Last updated 2026-11-03, after Phase 6 and the checks on the work PC.
+Where WinForms Recorder stands and how to continue it on any PC. Last updated 2026-11-04, after the DevExpress check on LMS.
 
 ## Status
 
@@ -39,6 +39,11 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
   - `./build.ps1 publish` worked from the Nexus feed in 63 s. The exe answered after 2.0 s, unpacked to `%TEMP%`, and ran unsigned.
   - The remote-desktop session was at 1920×1080 and 150 % during the mouse/keyboard tests: 15 of 17 passed. The other
     two fail at 150 % (see "Open items").
+- **On the work PC, 2026-11-04: the DevExpress check** (ARCHITECTURE F-36). LMS's forms use DevExpress only through
+  `MaskBox`-based text boxes (AltaSoft `EditBox`, `DateEditBox`…) and the report preview, and its grids are DataGridViews,
+  so the SampleApp's text boxes and grid already stand for them. On the Client Center search page every control got its
+  AutomationId as a High, unique locator. Found with a read-only scan of LMS's assemblies and `LmsSurveyTests` (see
+  "Testing notes"). Run at 150 %, the same survey pinned down the cause of the 150 % problem (F-35).
 - Phase 6 added `./build.ps1 publish`, one self-contained 77 MB exe that starts in about 2.3 s (D-82, F-34), the README's
   quick start with three screenshots, docs/USER_GUIDE.md, and .NET itself in THIRD_PARTY_NOTICES.md.
 - Phase 5 added the Settings window, shortcut conflict handling and the cheat sheet, autosave and restore, recent files,
@@ -56,7 +61,7 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
 |---|---|
 | [AGENTS.md](../AGENTS.md) | Working rules and commands |
 | [SPEC.txt](SPEC.txt) | The user's spec, verbatim: the source of truth. All six phases are done; don't redo them |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Design, decisions D-1 to D-83, verified findings F-1 to F-34 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Design, decisions D-1 to D-83, verified findings F-1 to F-36 |
 | [TEMPLATES.md](TEMPLATES.md) | Code profiles and the template model |
 | [target-style/](target-style/) | Real Page, Steps and Test files from the user's Java framework, and the filled-in spec §15 profile |
 | [README.md](../README.md) | What the recorder is, the quick start, and how to build, test and publish it |
@@ -78,8 +83,9 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
 
    It affects only this repo (D-41). Without it, restore fails with
    `error NU1301: Unable to load the service index for source https://hdprepo.hq.tbc/…`.
-5. `./build.ps1 test -NoInput`. Expected: the 507 unit tests pass, and 70 integration tests pass with 7 skipped: the 3
-   WinAppDriver comparisons, and the 4 `WindowPlacementTests`, which need two monitors (with two: 74 passed, 3 skipped).
+5. `./build.ps1 test -NoInput`. Expected: the 507 unit tests pass, and 70 integration tests pass with 8 skipped: the 3
+   WinAppDriver comparisons, the 4 `WindowPlacementTests`, which need two monitors (with two: 74 passed, 4 skipped), and
+   the LMS survey (see "Testing notes").
    Two more skip if the WebView2 Runtime is missing (it is preinstalled on Windows 11), and the two javac tests skip
    without a JDK or the jars.
    The unit tests run first, then the integration tests: both time things against the spec's budgets (F-31).
@@ -101,13 +107,14 @@ Nothing in the build or the tests needs LMS.exe or the user's LMSAutomationDemo 
 
 - **`tests/Recorder.SampleApp`** stands in for LMS: .NET Framework 4.8 WinForms, MDI, owned dialogs and a MessageBox, a
   DataGridView with a checkbox column and a context menu, image-only toolbar buttons, and an owner-drawn MSAA-only control
-  standing in for DevExpress. It also has a WebView2 form and Georgian text. Every acceptance test in the spec runs against it.
+  that was meant to stand in for DevExpress (LMS turned out not to need it, F-36). It also has a WebView2 form and Georgian
+  text. Every acceptance test in the spec runs against it.
 - **`docs/target-style/`** holds the Java style the `java-appium-pom` profile generates.
 
 Only these need the work PC with LMS:
 
-- Checking how DevExpress controls (XtraEditors, XtraGrid, XtraNavBar) appear: AutomationIds, names, tree shape, and whether
-  their editors raise focus events and expose values the way F-29 describes. This has never been done; F-11 describes only the stand-in.
+- The two checks left from the DevExpress check (F-36): recording with the pop-ups of `DateEditBox` and `CheckComboBox`,
+  and a grid with rows (see "Open items").
 - Trying each finished phase on real LMS screens.
 
 Never copy anything from LMS screens into this repo, the tests or the logs: window titles and grids show customer names
@@ -139,12 +146,16 @@ throwaway data folder that held a recording of the SampleApp flow; retake them f
   - `Recording_the_acceptance_flow_…`: "Timed out after 10 s waiting for eight steps". Which step differs isn't known yet.
     Suspect D-42 (menu and toolbar items are chosen by their bounds) and D-44 (the hover snapshot must contain the click
     point): ToolStrip items, like grid cells, are parts without a window handle.
-  - Likely cause, to be proved by a spike before any fix: for parts without a window handle, served through MSAA, the
-    bounds the recorder reads (cached, on its UIA worker) are in the DPI-unaware app's logical pixels. LMS is DPI-unaware
-    and full of such parts (DevExpress, F-11), and many laptops run at 125–150 %, so this matters in real use.
-  - Next: in a session at 150 %, compare cached and live `BoundingRectangle` of a grid cell and a menu item. Record the
-    fact as F-35 and fix capture (`ElementSnapshotFactory`). Rerun `CaptureEndToEndTests` and `RecordingEndToEndTests`
-    at 150 % on a screen where the SampleApp fits (2560×1440 or larger), then at 100 %.
+  - Cause (F-35, shown on 2026-11-04 by `LmsSurveyTests` on the SampleApp and on LMS): parts served through MSAA get the
+    target's logical pixels when ElementFromPoint finds them, as hover and capture do, but physical pixels when the tree
+    is walked from their window. The recorder's tree reads (`TreeFetcher`, the uniqueness checks) are right.
+  - In LMS this hits grid parts and status bar labels; its editors, buttons and menus are window-backed or come out right
+    (F-36). Sessions opened from a laptop at 150 %, like the work PC's, show it every day.
+  - Next: in `ElementSnapshotFactory`, give an element without its own window the bounds the tree gives it. One way to
+    try: from its nearest window ancestor (the snapshot has it), find the element by its RuntimeId and read its bounds;
+    spike first that this comes back right, and that hover stays within its 100 ms budget (F-17). Then find which step the
+    recording test loses at 150 % before assuming it is the same cause, and rerun `CaptureEndToEndTests` and
+    `RecordingEndToEndTests` at 150 % on a screen where the SampleApp fits (2560×1440 or larger), and at 100 %.
 - **Recordings saved before 0.7.1** don't know their cells' control types, so in Java all their grid cells are clicked
   inside the grid, never through `GridSteps` (D-83). Record those grid steps again to use `GridSteps`.
 - **Verify (D-62).** Snapshot tests use an in-repo helper because Verify 33 ships under a maintenance-fee agreement. If the
@@ -152,7 +163,12 @@ throwaway data folder that held a recording of the SampleApp flow; retake them f
 - **WinAppDriver on the Phase 3 PC.** WinAppDriver 1.2.2009 was already running there at 127.0.0.1:4723, apparently elevated,
   and the comparison tests failed with "Cannot find active window specified by capabilities: appTopLevelWindow". Run them on
   the work PC (they passed there on 2026-11-03, see "Status"), or start WinAppDriver normally first.
-- The DevExpress check on LMS (work PC only).
+- **LMS checks left (work PC only).** The DevExpress check is done (F-36). Still to try on LMS:
+  - Record a dialog with `DateEditBox` and `CheckComboBox` editors (AltaSoft's loans filter dialog has 7 and 3): type a
+    date, pick one from the pop-up, tick items, close. The value steps should come from the text box (D-46, D-51);
+    check what the clicks inside the pop-ups become.
+  - Survey a grid with rows (search in Client Center first): F-6's cell names and `GridSteps` (D-83) assume DataGridView's naming.
+  - The report preview (XtraPrinting, the one real DevExpress control) only if tests need it.
 - **The exe on colleagues' PCs.** It started on the work PC (see "Status"). Elsewhere, a policy that blocks programs in
   `%TEMP%`, where it unpacks WPF's DLLs, needs `DOTNET_BUNDLE_EXTRACT_BASE_DIR` (USER_GUIDE.md says how). It isn't
   signed, and signing needs the bank's code-signing certificate.
@@ -181,6 +197,18 @@ throwaway data folder that held a recording of the SampleApp flow; retake them f
   `./build.ps1 test -WinAppDriverUrl http://127.0.0.1:4791`. Stop it afterwards.
 - A remote-desktop session takes the resolution and scale of the PC you connect from (1920×1080 at 150 % from a laptop,
   for instance). Check Settings › Display before the mouse/keyboard tests and note it with the results.
+- `LmsSurveyTests` (`tests/Recorder.IntegrationTests/Lms`) surveys LMS read-only; it found F-35 and F-36. It reads LMS's
+  tree as the recorder does and captures at each control's center, but sends no input, reads no value, and writes names
+  only as shapes (`Aaaa 99`) and no window title. With LMS open in the same Windows session, after `./build.ps1`:
+
+  ```powershell
+  $env:DOTNET_ROOT = "$env:LOCALAPPDATA\Microsoft\dotnet"                 # the SDK pinned in global.json
+  $env:WINFORMSRECORDER_LMS_SURVEY = "$env:USERPROFILE\lms-survey.txt"   # the report, outside the repo
+  & "$env:DOTNET_ROOT\dotnet.exe" test tests/Recorder.IntegrationTests --no-build --filter FullyQualifiedName~LmsSurveyTests
+  ```
+
+  Without `WINFORMSRECORDER_LMS_SURVEY` it is skipped. With `WINFORMSRECORDER_LMS_SURVEY_PROCESS` set to `Recorder.SampleApp`
+  it surveys a running SampleApp instead, as a dry run. Read the report before it leaves the work PC.
 - The Phase 5 tests of the recorder's own UI (`AccessibilityTests`, `SettingsTests`, `AutosaveTests`) need no input: they open
   and close Settings and the cheat sheet through UI Automation, and `AutosaveTests` starts the recorder twice on one data folder.
 - `./build.ps1 test -Monitor n` (or `WINFORMSRECORDER_TEST_MONITOR=n`) opens the end-to-end tests' SampleApp (`SampleAppFixture`) on
