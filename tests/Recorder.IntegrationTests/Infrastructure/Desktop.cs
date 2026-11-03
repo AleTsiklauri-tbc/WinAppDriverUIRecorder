@@ -30,6 +30,9 @@ internal static class Desktop
     public const ushort VkC = 0x43;
     public const ushort VkX = 0x58;
     public const ushort VkF2 = 0x71;
+    public const ushort VkF9 = 0x78;
+    public const ushort VkS = 0x53;
+    private const uint KeyUnicode = 0x0004;
 
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
@@ -113,6 +116,24 @@ internal static class Desktop
         ArgumentNullException.ThrowIfNull(virtualKeys);
         var inputs = virtualKeys.Select(key => Key(key, up: false)).Concat(virtualKeys.Reverse().Select(key => Key(key, up: true)));
         Send([.. inputs]);
+    }
+
+    /// <summary>
+    /// Types text into the focused window as Unicode characters (VK_PACKET), whatever the keyboard layout. The recorder's
+    /// keyboard hook sees these as typing, like keys pressed on a keyboard.
+    /// </summary>
+    public static void TypeText(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        foreach (var character in text)
+        {
+            Send(
+            [
+                new Input { Type = InputKeyboard, Data = new InputUnion { Keyboard = new KeyboardInput { Scan = character, Flags = KeyUnicode } } },
+                new Input { Type = InputKeyboard, Data = new InputUnion { Keyboard = new KeyboardInput { Scan = character, Flags = KeyUnicode | KeyUp } } },
+            ]);
+            Thread.Sleep(15);
+        }
     }
 
     /// <summary>The process owning the window the user sees at a point (what a click there would reach).</summary>

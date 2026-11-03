@@ -19,6 +19,12 @@ public static unsafe class Win32
         return hwnd == 0 ? 0 : ProcessOfWindow(NativeMethods.GetAncestor(hwnd, NativeMethods.GA_ROOT));
     }
 
+    /// <summary>The process that owns the foreground window (the one receiving keyboard input), or 0.</summary>
+    public static int ForegroundProcess() => ProcessOfWindow(NativeMethods.GetForegroundWindow());
+
+    /// <summary>The user's double-click time (Control Panel › Mouse).</summary>
+    public static TimeSpan DoubleClickTime() => TimeSpan.FromMilliseconds(NativeMethods.GetDoubleClickTime());
+
     public static int ProcessOfWindow(nint hwnd)
     {
         if (hwnd == 0)

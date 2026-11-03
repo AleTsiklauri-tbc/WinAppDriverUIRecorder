@@ -46,20 +46,30 @@ public sealed partial class ElementLocating(ILocatorService locators, ElementCat
                 return element;
             }
 
-            var kept = catalog.AttachLocators(element, report);
-            if (!ReferenceEquals(kept, element))
-            {
-                toasts.Show(Text.Format(Strings.Toast_Merged, kept.VariableName));
-                Merged?.Invoke(this, (element, kept));
-            }
-
-            return kept;
+            return Attach(element, report);
         }
         finally
         {
             _checking.Remove(element.Id);
             CheckingChanged?.Invoke(this, element);
         }
+    }
+
+    /// <summary>Stores locators checked earlier (while recording, before a click made the element disappear, D-47).</summary>
+    public PageElement Attach(PageElement element, Core.Locators.LocatorReport report)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(report);
+        _failures.Remove(element.Id);
+        var kept = catalog.AttachLocators(element, report);
+        if (!ReferenceEquals(kept, element))
+        {
+            toasts.Show(Text.Format(Strings.Toast_Merged, kept.VariableName));
+            Merged?.Invoke(this, (element, kept));
+        }
+
+        CheckingChanged?.Invoke(this, kept);
+        return kept;
     }
 
     [LoggerMessage(EventId = 620, Level = LogLevel.Information, Message = "Locator check gave no result: {Status}")]

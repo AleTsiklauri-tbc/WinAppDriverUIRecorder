@@ -33,7 +33,7 @@ public class FirstRunTests : IClassFixture<RecorderAppFixture>
     public void Empty_panes_explain_what_will_appear_there()
     {
         NameOf("Steps.Empty").ShouldBe("No steps yet. Press F9 and use the app as you normally would.");
-        NameOf("Code.Empty").ShouldBe("Code for captured controls and recorded steps appears here.");
+        NameOf("Code.Empty").ShouldBe("Capture controls (Ctrl+Shift+X) or record a flow (F9) to get page classes.");
 
         Wait.ForDescendant(Main, "Tab.Elements").Patterns.SelectionItem.Pattern.Select();
         NameOf("Elements.Empty").ShouldBe("Captured controls appear here, grouped by window.");

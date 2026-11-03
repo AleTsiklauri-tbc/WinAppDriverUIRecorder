@@ -56,6 +56,8 @@
     <controls:LevelOpacityConverter x:Key="LevelOpacity" />
     <controls:ReachabilityBrushConverter x:Key="ReachabilityBrush" />
     <controls:ReachabilityTextConverter x:Key="ReachabilityText" />
+    <controls:EnumToIndexConverter x:Key="EnumToIndex" />
+    <controls:IsSetConverter x:Key="ToBool" />
 
     <!-- Strategy badge (ID / Name / Class / XPath): text on the quality colour, like the overlay chip. -->
     <Style x:Key="BadgeBorderStyle" TargetType="Border">

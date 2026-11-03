@@ -93,6 +93,19 @@ public sealed partial class ElementsViewModel : ObservableObject
     /// <summary>Adds a newly captured element, or finds it if it is already listed, and selects it.</summary>
     public ElementItemViewModel Show(PageElement element)
     {
+        var item = Include(element);
+        if (!Matches(item))
+        {
+            FilterText = string.Empty;
+        }
+
+        Selected = item;
+        return item;
+    }
+
+    /// <summary>Lists an element without selecting it (an element of a recorded step).</summary>
+    public ElementItemViewModel Include(PageElement element)
+    {
         ArgumentNullException.ThrowIfNull(element);
         var item = Items.FirstOrDefault(existing => existing.Element.Id == element.Id);
         if (item is null)
@@ -102,13 +115,22 @@ public sealed partial class ElementsViewModel : ObservableObject
             IsEmpty = false;
         }
 
-        if (!Matches(item))
+        return item;
+    }
+
+    /// <summary>Lists exactly these elements (a recording was opened).</summary>
+    public void Reset(IEnumerable<PageElement> elements)
+    {
+        ArgumentNullException.ThrowIfNull(elements);
+        Selected = null;
+        Items.Clear();
+        foreach (var element in elements)
         {
-            FilterText = string.Empty;
+            Items.Add(new ElementItemViewModel(element, _locating));
         }
 
-        Selected = item;
-        return item;
+        IsEmpty = Items.Count == 0;
+        HasNoMatch = Items.Count > 0 && View.IsEmpty;
     }
 
     /// <summary>Drops an element that was merged into another one.</summary>

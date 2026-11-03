@@ -15,11 +15,14 @@ internal sealed class UiaContext : IDisposable
             TransactionTimeout = options.CallTimeout,
         };
         Snapshots = new ElementSnapshotFactory(Automation, valueReader, time);
+        States = new ElementStateReader(Automation, valueReader);
     }
 
     public UIA3Automation Automation { get; }
 
     public ElementSnapshotFactory Snapshots { get; }
+
+    public ElementStateReader States { get; }
 
     /// <summary>Live elements seen in this session, by runtime id, so they can be inspected again.</summary>
     public ElementCache Elements { get; } = new(capacity: 4096);

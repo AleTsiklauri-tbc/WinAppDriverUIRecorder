@@ -64,6 +64,28 @@ public static partial class VariableNamer
         return "get" + UpperFirst(variableName);
     }
 
+    /// <summary>
+    /// A class name the user typed: kept as typed when it is an identifier (first letter made upper case), otherwise its
+    /// words in PascalCase ("loan details page" → LoanDetailsPage); null when nothing usable is left.
+    /// </summary>
+    public static string? ClassName(string? typed)
+    {
+        if (string.IsNullOrWhiteSpace(typed))
+        {
+            return null;
+        }
+
+        var latin = Transliteration.ToLatin(typed.Trim(), Transliteration.BuiltIn);
+        var clean = Clean(latin);
+        if (clean is null)
+        {
+            return null;
+        }
+
+        var name = clean == latin ? clean : string.Concat(Words(latin).Select(UpperFirst));
+        return name.Length == 0 || char.IsAsciiDigit(name[0]) ? null : UpperFirst(name);
+    }
+
     /// <summary>A name the user typed, reduced to a valid identifier; null when nothing usable is left.</summary>
     public static string? Clean(string? typed)
     {
@@ -100,6 +122,7 @@ public static partial class VariableNamer
             yield return snapshot.LabelText;
         }
 
+        // Never a window's title (NameRules, D-70).
         var name = NameRules.Evaluate(snapshot.Name, snapshot.ControlType);
         if (name.IsAccepted && name.Stability != Stability.Low)
         {

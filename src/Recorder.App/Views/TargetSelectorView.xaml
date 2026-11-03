@@ -23,7 +23,7 @@
                              AutomationProperties.AutomationId="TargetSelector.Search"
                              PreviewKeyDown="OnSearchKeyDown" />
                     <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                Text="{x:Static res:Strings.TargetSelector_Search}"
                                Visibility="{Binding SearchText, Converter={StaticResource ToCollapsedVisibility}}" />
                 </Grid>

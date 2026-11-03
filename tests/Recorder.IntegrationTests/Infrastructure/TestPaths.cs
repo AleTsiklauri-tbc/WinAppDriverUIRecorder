@@ -11,8 +11,14 @@ internal static class TestPaths
     public static string SampleAppExe =>
         Existing(Path.Combine(RepoRoot, "tests", "Recorder.SampleApp", "bin", Configuration, "net48", "Recorder.SampleApp.exe"));
 
+    /// <summary>
+    /// The recorder under test: the build output, or the exe named by WINFORMSRECORDER_RECORDER_EXE, which
+    /// <c>./build.ps1 test -Published</c> sets to the published single-file exe.
+    /// </summary>
     public static string RecorderExe =>
-        Existing(Path.Combine(RepoRoot, "src", "Recorder.App", "bin", Configuration, "net10.0-windows", "WinFormsRecorder.exe"));
+        Existing(Environment.GetEnvironmentVariable("WINFORMSRECORDER_RECORDER_EXE") is { Length: > 0 } published
+            ? Path.GetFullPath(published)
+            : Path.Combine(RepoRoot, "src", "Recorder.App", "bin", Configuration, "net10.0-windows", "WinFormsRecorder.exe"));
 
     /// <summary>
     /// Root of the .NET installation running these tests. The recorder is framework-dependent in Debug,

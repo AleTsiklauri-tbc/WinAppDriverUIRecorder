@@ -131,26 +131,15 @@ internal static class CandidateGenerator
         }
     }
 
-    // The nearest window that can be named: by its AutomationId, else by a title that does not look dynamic.
+    // The nearest window with a usable AutomationId. Never a window by its title: in LMS it shows the open customer (D-70);
+    // without such a window the position counts across the whole window the session is attached to.
     private static LocatorStep? WindowStep(LocatorSubject subject)
     {
         for (var i = 0; i < subject.Ancestors.Count; i++)
         {
-            var ancestor = subject.Ancestors[i];
-            if (ancestor.ControlType != "Window")
+            if (subject.Ancestors[i].ControlType == "Window" && subject.AncestorIdVerdict(i).IsAccepted)
             {
-                continue;
-            }
-
-            if (subject.AncestorIdVerdict(i).IsAccepted)
-            {
-                return new LocatorStep(Axis.Descendant, "Window", [new AttrEquals(AttributeName.AutomationId, ancestor.AutomationId)]);
-            }
-
-            var title = NameRules.Evaluate(ancestor.Name, ancestor.ControlType);
-            if (title.IsAccepted && title.Stability != Stability.Low)
-            {
-                return new LocatorStep(Axis.Descendant, "Window", [new AttrEquals(AttributeName.Name, ancestor.Name)]);
+                return new LocatorStep(Axis.Descendant, "Window", [new AttrEquals(AttributeName.AutomationId, subject.Ancestors[i].AutomationId)]);
             }
         }
 

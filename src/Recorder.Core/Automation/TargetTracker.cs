@@ -46,7 +46,7 @@ public interface ITargetFilter
 /// Tracks the app being automated: remembers it by process name, notices when it closes and re-attaches when it
 /// starts again. Only processes in the recorder's own Windows session count (terminal servers run many copies).
 /// </summary>
-public sealed partial class TargetTracker : ITargetFilter, IAsyncDisposable
+public sealed partial class TargetTracker : Recording.IRecordingTarget, IAsyncDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(1);
     private readonly SettingsStore _settings;
@@ -152,6 +152,10 @@ public sealed partial class TargetTracker : ITargetFilter, IAsyncDisposable
                 break;
         }
     }
+
+    public int ProcessId => State is { IsAttached: true } state ? state.ProcessId : 0;
+
+    public nint MainWindow => State.WindowHandle;
 
     public bool IsOverTarget(PixelPoint point)
     {

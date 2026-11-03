@@ -7,11 +7,13 @@
     <RootNamespace>Recorder.App</RootNamespace>
     <AssemblyName>WinFormsRecorder</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.3.0</Version>
+    <Version>0.7.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AvalonEdit" />
+    <PackageReference Include="DiffPlex.Wpf" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Serilog" />

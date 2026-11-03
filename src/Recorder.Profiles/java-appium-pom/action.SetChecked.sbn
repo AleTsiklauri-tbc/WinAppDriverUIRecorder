@@ -1,0 +1,7 @@
+{{~ if state ~}}
+if ({{ if state == "true" }}!{{ end }}{{ target }}.isSelected()) {
+    {{ target }}.click();
+}
+{{~ else ~}}
+{{ target }}.click();
+{{~ end ~}}

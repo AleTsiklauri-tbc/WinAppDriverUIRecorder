@@ -66,22 +66,26 @@
                 <TextBlock Style="{StaticResource BodyTextStyle}" Margin="0,6,0,0" Text="{Binding Selected.Explanation}"
                            AutomationProperties.AutomationId="Locator.Explanation" />
                 <ItemsControl ItemsSource="{Binding Selected.Warnings}" Focusable="False" ItemTemplate="{StaticResource NoteTemplate}"
-                              AutomationProperties.AutomationId="Locator.Warnings" />
+                              AutomationProperties.Name="{x:Static res:Strings.List_Warnings}" AutomationProperties.AutomationId="Locator.Warnings" />
                 <ItemsControl ItemsSource="{Binding Selected.Infos}" Focusable="False" ItemTemplate="{StaticResource InfoTemplate}"
-                              AutomationProperties.AutomationId="Locator.Infos" />
+                              AutomationProperties.Name="{x:Static res:Strings.List_Notes}" AutomationProperties.AutomationId="Locator.Infos" />
                 <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,6,0,0" Text="{Binding Selected.VerifyText}"
                            Visibility="{Binding Selected.VerifyText, Converter={StaticResource ToVisibility}}"
                            AutomationProperties.AutomationId="Locator.Verified" />
 
-                <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Margin="0,12,0,4" Text="{x:Static res:Strings.Locator_JavaLine}" />
+                <!-- The active profile's snippet.sbn (D-32 for Java): "Java line" or "C# line". -->
+                <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Margin="0,12,0,4" Text="{Binding CodeLineTitle}" />
                 <TextBox IsReadOnly="True" TextWrapping="Wrap" FontFamily="{StaticResource MonoFontFamily}" FontSize="12"
                          Text="{Binding JavaLine, Mode=OneWay}"
-                         AutomationProperties.Name="{x:Static res:Strings.Locator_JavaLine}"
+                         AutomationProperties.Name="{Binding CodeLineTitle}"
                          AutomationProperties.AutomationId="Locator.JavaLine" />
+                <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                           Text="{Binding CodeLineError}" Visibility="{Binding CodeLineError, Converter={StaticResource ToVisibility}}"
+                           AutomationProperties.AutomationId="Locator.CodeLineError" />
 
                 <WrapPanel Margin="0,10,0,0">
-                    <Button Style="{StaticResource AccentButtonStyle}" Margin="0,0,6,6" Content="{x:Static res:Strings.Locator_CopyJava}"
-                            Command="{Binding CopyJavaLineCommand}" ToolTip="{x:Static res:Strings.Locator_CopyJava_Tip}"
+                    <Button Style="{StaticResource AccentButtonStyle}" Margin="0,0,6,6" Content="{Binding CopyLineText}"
+                            Command="{Binding CopyJavaLineCommand}" ToolTip="{Binding CopyLineTip}"
                             AutomationProperties.AutomationId="Locator.CopyJava" />
                     <Button Margin="0,0,6,6" Content="{x:Static res:Strings.Locator_CopyValue}" Command="{Binding CopyValueCommand}"
                             ToolTip="{x:Static res:Strings.Locator_CopyValue_Tip}" AutomationProperties.AutomationId="Locator.CopyValue" />
@@ -115,7 +119,8 @@
 
         <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Locator_OthersTitle}"
                    Visibility="{Binding Others.Count, Converter={StaticResource ToVisibility}}" />
-        <ItemsControl ItemsSource="{Binding Others}" Focusable="False" AutomationProperties.AutomationId="Locator.Others">
+        <ItemsControl ItemsSource="{Binding Others}" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.Locator_OthersTitle}"
+                      AutomationProperties.AutomationId="Locator.Others">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
                     <DockPanel Margin="0,0,0,10">
@@ -130,7 +135,8 @@
                                 </Border>
                             </DockPanel>
                             <TextBlock Style="{StaticResource MonoTextStyle}" Margin="0,4,0,0" FontSize="12" Text="{Binding Value}" />
-                            <ItemsControl ItemsSource="{Binding Warnings}" Focusable="False" ItemTemplate="{StaticResource NoteTemplate}" />
+                            <ItemsControl ItemsSource="{Binding Warnings}" Focusable="False" ItemTemplate="{StaticResource NoteTemplate}"
+                                          AutomationProperties.Name="{x:Static res:Strings.List_Warnings}" AutomationProperties.AutomationId="Locator.Other.Warnings" />
                             <TextBlock Style="{StaticResource CaptionTextStyle}" Text="{Binding VerifyText}"
                                        Visibility="{Binding VerifyText, Converter={StaticResource ToVisibility}}" />
                         </StackPanel>

@@ -1,0 +1,125 @@
+// ===== LoanPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class LoanPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public LoanPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement AmountInput => _driver.FindElementByAccessibilityId("txtAmount");
+        public WindowsElement PasswordInput => _driver.FindElementByAccessibilityId("txtPassword");
+        public WindowsElement CurrencyDropdown => _driver.FindElementByAccessibilityId("cmbCurrency");
+        public WindowsElement InsuredCheckbox => _driver.FindElementByAccessibilityId("chkInsured");
+        public WindowsElement ShowMessageButton => _driver.FindElementByAccessibilityId("btnShowMessage");
+        public WindowsElement LoansGrid => _driver.FindElementByAccessibilityId("dgvLoans");
+    }
+}
+
+// ===== MainPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class MainPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public MainPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement FileMenuItem => _driver.FindElementByName("File");
+    }
+}
+
+// ===== WindowPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class WindowPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public WindowPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement OkButton => _driver.FindElementByAccessibilityId("2");
+    }
+}
+
+// ===== LoanFlowTests.cs (Test) =====
+using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Windows;
+using Recorded.Pages;
+
+namespace Recorded.Tests
+{
+    [TestClass]
+    public class LoanFlowTests
+    {
+        private WindowsDriver<WindowsElement> _driver;
+
+        public TestContext TestContext { get; set; }
+
+        [TestInitialize]
+        public void StartSession()
+        {
+            var options = new AppiumOptions();
+            options.AddAdditionalCapability("app", Setting("AppPath"));
+            _driver = new WindowsDriver<WindowsElement>(new Uri(Setting("WinAppDriverUrl", "http://127.0.0.1:4723")), options);
+            _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+        }
+
+        [TestCleanup]
+        public void EndSession()
+        {
+            _driver?.Quit();
+        }
+
+        [TestMethod]
+        [Description("Loan flow")]
+        public void LoanFlow()
+        {
+            var loanPage = new LoanPage(_driver);
+            loanPage.AmountInput.Clear();
+            loanPage.AmountInput.SendKeys("5000");
+            loanPage.PasswordInput.Clear();
+            loanPage.PasswordInput.SendKeys(Setting("passwordInput"));
+            loanPage.CurrencyDropdown.SendKeys("GEL");
+            loanPage.CurrencyDropdown.SendKeys(Keys.Enter);
+            if (!loanPage.InsuredCheckbox.Selected)
+            {
+                loanPage.InsuredCheckbox.Click();
+            }
+            var mainPage = new MainPage(_driver);
+            mainPage.FileMenuItem.Click();
+            _driver.FindElementByXPath("//MenuItem[@Name='Export']").Click();
+            _driver.FindElementByXPath("//MenuItem[@Name='PDF']").Click();
+            loanPage.ShowMessageButton.Click();
+            var windowPage = new WindowPage(_driver);
+            windowPage.OkButton.Click();
+            loanPage.LoansGrid.FindElementByXPath(".//*[@Name='Status Row 2' or starts-with(@Name,'Status Row 2,')]").Click();
+        }
+
+        // AppPath, WinAppDriverUrl and the test data keys come from the run settings (TestRunParameters).
+        private string Setting(string name, string fallback = null)
+        {
+            return TestContext.Properties[name] as string ?? fallback
+                ?? throw new InvalidOperationException("Set " + name + " in the run settings (TestRunParameters).");
+        }
+    }
+}
+

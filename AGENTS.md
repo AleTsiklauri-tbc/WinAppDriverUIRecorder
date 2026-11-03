@@ -6,13 +6,13 @@ Instructions for AI coding assistants working in this repository.
 with WinAppDriver and Java. It replaces Microsoft's WinAppDriver UI Recorder, kept unmodified in `legacy/UIRecorder`.
 The user is a QA automation engineer at a bank; the real target app is LMS, a loan management system.
 
-**Status: Phases 0–2 of the spec are done; Phase 3 (recording) is next. Read [docs/HANDOFF.md](docs/HANDOFF.md) before
-anything else.**
+**Status: all six phases of the spec are done (version 0.7.0); what is still open is in [docs/HANDOFF.md](docs/HANDOFF.md).
+Read it before anything else.**
 
 ## Sources of truth
 
 - [docs/SPEC.txt](docs/SPEC.txt): the user's spec, verbatim. Phases are in §14, engineering rules in §17. Its opening
-  says to start at Phase 0: don't, Phases 0–2 are done.
+  says to start at Phase 0: don't, all six phases are done.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): decisions (D-n) and verified findings (F-n). Extend them; never
   contradict them silently.
 - [docs/target-style/](docs/target-style/): the Java that generated code must match, and the filled-in spec §15 profile.
@@ -44,7 +44,10 @@ anything else.**
 - Don't modify `legacy/`.
 - Files are UTF-8 without BOM, with CRLF line endings (`.editorconfig`).
 - Tests that move the real mouse or send keys carry `[Trait("Category", "Input")]`. Tests that need WinAppDriver carry
-  `[Trait("Requires", "WinAppDriver")]` and skip when it isn't reachable.
+  `[Trait("Requires", "WinAppDriver")]` and skip when it isn't reachable; those that need a JDK carry `[Trait("Requires", "JDK")]`.
+- Generated code: a change to a template (`src/Recorder.Profiles`) or to the code model shows up as a failing snapshot in
+  `tests/Recorder.Core.Tests/CodeGen/Snapshots`. Review the `.received.txt` and rename it to `.verified.txt` only if it is
+  right. The generated Java must keep compiling (`JavaCompileTests`), and `docs/TEMPLATES.md` must describe the model.
 - A failing UI test is evidence. Find the cause before changing it (check the environment first: a locked session, a
   window someone closed), and never loosen a test just to make it pass.
 
@@ -55,6 +58,9 @@ anything else.**
 ./build.ps1 test -NoInput      # all tests except the mouse/keyboard ones (about a minute after the build)
 ./build.ps1 test               # all tests; the mouse/keyboard ones run first, hands off for about a minute
 ./build.ps1 test -WinAppDriverUrl http://127.0.0.1:4723   # also the WinAppDriver comparisons (about 11 more minutes)
+./build.ps1 test -Monitor 2    # all tests with the SampleApp on monitor 2 (1 = the main display)
+./build.ps1 publish            # the self-contained exe in artifacts\publish\win-x64 (about 2.5 minutes)
+./build.ps1 test -Published    # the integration tests against that exe instead of the build output
 ./build.ps1 run                # start the recorder
 ```
 

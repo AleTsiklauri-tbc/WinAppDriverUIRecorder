@@ -1,0 +1,5 @@
+{{~ if cell ~}}
+new Actions(_driver).ContextClick({{ target }}.FindElementByXPath({{ cell }})).Perform();
+{{~ else ~}}
+new Actions(_driver).ContextClick({{ target }}).Perform();
+{{~ end ~}}

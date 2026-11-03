@@ -50,6 +50,15 @@ internal sealed class RecorderWindow(AppSession session) : IDisposable
     public AutomationElement WaitForCapturedElement(string variableName) =>
         Wait.For(() => FindCapturedElement(variableName), TimeSpan.FromSeconds(10), $"'{variableName}' in the Elements list");
 
+    /// <summary>The sentences of the Steps list, in order.</summary>
+    public IReadOnlyList<string> StepSentences() =>
+        [.. (Main.FindFirstDescendant(c => c.ByAutomationId("Steps.List"))?.FindAllChildren(c => c.ByControlType(ControlType.ListItem)) ?? [])
+            .Select(item => item.Properties.Name.ValueOrDefault ?? string.Empty)];
+
+    /// <summary>The recording mini-bar, a top-level window of its own, or null while it is not shown.</summary>
+    public AutomationElement? FindMiniBar() =>
+        session.Automation.GetDesktop().FindFirstChild(c => c.ByAutomationId("MiniBar").And(c.ByProcessId(session.ProcessId)));
+
     public IReadOnlyList<DesktopWindow> VisibleHighlightWindows() =>
         [.. Desktop.WindowsOf(session.ProcessId, HighlightClass).Where(window => window.IsVisible)];
 

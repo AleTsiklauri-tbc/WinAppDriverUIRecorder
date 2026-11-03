@@ -13,7 +13,7 @@
                          AutomationProperties.Name="{x:Static res:Strings.Elements_Filter}"
                          AutomationProperties.AutomationId="Elements.Filter" />
                 <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
-                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Text="{x:Static res:Strings.Elements_Filter}"
                            Visibility="{Binding FilterText, Converter={StaticResource ToCollapsedVisibility}}" />
             </Grid>

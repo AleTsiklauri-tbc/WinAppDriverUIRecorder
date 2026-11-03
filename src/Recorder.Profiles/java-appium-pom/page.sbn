@@ -1,0 +1,22 @@
+package {{ profile.package }};
+
+{{~
+imports = [profile.classes.windowsDriver, profile.classes.webElement, profile.classes.basePage]
+for qualified in imports | array.uniq | array.sort
+~}}
+import {{ qualified }};
+{{~ end ~}}
+
+public class {{ page.class_name }} extends {{ simple_name profile.classes.basePage }} {
+    private final {{ simple_name profile.classes.windowsDriver }} winDriver;
+
+    public {{ page.class_name }}({{ simple_name profile.classes.windowsDriver }} driver) {
+        super(driver);
+        this.winDriver = driver;
+    }
+
+    // Locators only - all public for access from Steps classes
+{{~ for element in page.elements ~}}
+    {{ include "element" }}
+{{~ end ~}}
+}

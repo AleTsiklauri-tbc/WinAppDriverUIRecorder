@@ -1,0 +1,1 @@
+Assert.AreEqual({{ value }}, {{ target }}.GetAttribute("Value.Value"), {{ description | literal }});

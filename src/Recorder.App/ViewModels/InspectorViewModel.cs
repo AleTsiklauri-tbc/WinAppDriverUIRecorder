@@ -6,6 +6,7 @@ using Recorder.App.Services;
 using Recorder.Core.Automation;
 using Recorder.Core.Locators;
 using Recorder.Core.Model;
+using Recorder.Core.Recording;
 
 namespace Recorder.App.ViewModels;
 
@@ -20,17 +21,20 @@ public sealed partial class InspectorViewModel : ObservableObject
     private readonly IClipboardService _clipboard;
     private readonly ToastService _toasts;
     private readonly ElementCatalog _catalog;
+    private readonly EditHistory _history;
     private PageElement? _element;
     private int _xpathRequest;
 
     public InspectorViewModel(
-        IUiaService uia, ILocatorService locators, IClipboardService clipboard, ToastService toasts, ElementCatalog catalog, LocatorsViewModel locatorCard)
+        IUiaService uia, ILocatorService locators, IClipboardService clipboard, ToastService toasts, ElementCatalog catalog, LocatorsViewModel locatorCard,
+        EditHistory history)
     {
         _uia = uia;
         _locators = locators;
         _clipboard = clipboard;
         _toasts = toasts;
         _catalog = catalog;
+        _history = history;
         Locators = locatorCard;
     }
 
@@ -78,13 +82,25 @@ public sealed partial class InspectorViewModel : ObservableObject
     public void Show(ElementSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
+        Show(snapshot, _catalog.Find(snapshot.SessionKey));
+    }
+
+    /// <summary>Shows a listed element, including one opened from a recording that has not been captured again yet.</summary>
+    public void ShowElement(PageElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        Show(element.Snapshot, element);
+    }
+
+    private void Show(ElementSnapshot snapshot, PageElement? element)
+    {
         if (_element is not null)
         {
             _element.Changed -= OnElementChanged;
         }
 
         Snapshot = snapshot;
-        _element = _catalog.Find(snapshot.SessionKey);
+        _element = element;
         IsCaptured = _element is not null;
         EditableName = _element?.VariableName;
         if (_element is not null)
@@ -108,7 +124,7 @@ public sealed partial class InspectorViewModel : ObservableObject
     /// <summary>Shows the element again after the catalog changed (captured, merged).</summary>
     public void RefreshCapturedState()
     {
-        if (Snapshot is not null && _catalog.Find(Snapshot.SessionKey) != _element)
+        if (Snapshot is not null && Snapshot.SessionKey.Length > 0 && _catalog.Find(Snapshot.SessionKey) != _element)
         {
             Show(Snapshot);
         }
@@ -126,15 +142,21 @@ public sealed partial class InspectorViewModel : ObservableObject
     private void CommitName()
     {
         // Leaving the box without typing must not pin the suggested name (UserRenamed) or re-render everything.
-        if (_element is null || EditableName == _element.VariableName)
+        if (_element is not { } element || EditableName == element.VariableName)
         {
             return;
         }
 
-        if (!_catalog.Rename(_element, EditableName ?? string.Empty))
+        var (oldName, wasRenamed) = (element.VariableName, element.UserRenamed);
+        if (!_catalog.Rename(element, EditableName ?? string.Empty))
         {
-            EditableName = _element.VariableName; // nothing usable typed: keep the old name
+            EditableName = element.VariableName; // nothing usable typed: keep the old name
+            return;
         }
+
+        // Undoable (spec 11.6): the rename is already applied, so applying it again is a no-op.
+        var newName = element.VariableName;
+        _history.Execute(() => _catalog.RestoreName(element, newName, userRenamed: true), () => _catalog.RestoreName(element, oldName, wasRenamed));
     }
 
     partial void OnIsAdvancedExpandedChanged(bool value)

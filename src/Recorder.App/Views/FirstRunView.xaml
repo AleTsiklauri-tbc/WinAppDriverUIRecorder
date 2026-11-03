@@ -57,7 +57,7 @@
             <Border Style="{StaticResource CaptureOrRecordBadge}">
                 <TextBlock Style="{StaticResource BadgeNumberStyle}" Text="2" />
             </Border>
-            <TextBlock Style="{StaticResource StepTextStyle}" Text="{x:Static res:Strings.FirstRun_Step2}"
+            <TextBlock Style="{StaticResource StepTextStyle}" Text="{Binding [FirstRun_Step2], Source={StaticResource Shortcuts}}"
                        AutomationProperties.AutomationId="FirstRun.Step2" />
         </DockPanel>
 
@@ -65,7 +65,7 @@
             <Border Style="{StaticResource CaptureOrRecordBadge}">
                 <TextBlock Style="{StaticResource BadgeNumberStyle}" Text="3" />
             </Border>
-            <TextBlock Style="{StaticResource StepTextStyle}" Text="{x:Static res:Strings.FirstRun_Step3}"
+            <TextBlock Style="{StaticResource StepTextStyle}" Text="{Binding [FirstRun_Step3], Source={StaticResource Shortcuts}}"
                        AutomationProperties.AutomationId="FirstRun.Step3" />
         </DockPanel>
     </StackPanel>

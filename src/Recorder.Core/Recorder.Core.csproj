@@ -10,6 +10,13 @@
   <ItemGroup>
     <PackageReference Include="FlaUI.UIA3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Scriban" />
+  </ItemGroup>
+
+  <!-- The built-in code profiles (spec 10.1) live as plain files in src/Recorder.Profiles and are embedded here, so a
+       single-file exe carries them. Users override them with folders of the same name under %APPDATA% (D-60). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Recorder.Profiles\**\*.json;..\Recorder.Profiles\**\*.sbn" LogicalName="Profiles/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

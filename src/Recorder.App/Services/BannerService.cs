@@ -36,15 +36,20 @@ public sealed partial class BannerViewModel
     private void Dismiss() => _dismiss(this);
 }
 
-/// <summary>Banners for persistent conditions (target closed, elevation, shortcut taken). UI thread only.</summary>
+/// <summary>Banners for persistent conditions (target closed, elevation, shortcut taken, autosave to restore). UI thread only.</summary>
 public sealed class BannerService
 {
     public ObservableCollection<BannerViewModel> Items { get; } = [];
 
     /// <summary>Shows a banner, replacing any banner with the same id.</summary>
-    public void Show(string id, string message, bool isWarning = false, string? actionText = null, Action? action = null)
+    /// <param name="dismissed">Runs when the user closes the banner (not when it is removed or replaced).</param>
+    public void Show(string id, string message, bool isWarning = false, string? actionText = null, Action? action = null, Action? dismissed = null)
     {
-        var banner = new BannerViewModel(id, message, isWarning, actionText, action, b => Items.Remove(b));
+        var banner = new BannerViewModel(id, message, isWarning, actionText, action, b =>
+        {
+            Items.Remove(b);
+            dismissed?.Invoke();
+        });
         var index = IndexOf(id);
         if (index >= 0)
         {

@@ -1,0 +1,5 @@
+{{~ if cell ~}}
+new Actions(_driver).DoubleClick({{ target }}.FindElementByXPath({{ cell }})).Perform();
+{{~ else ~}}
+new Actions(_driver).DoubleClick({{ target }}).Perform();
+{{~ end ~}}

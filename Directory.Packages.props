@@ -8,6 +8,10 @@
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- Phase 4: templates (BSD-2-Clause), the code view (MIT), the merge preview (Apache-2.0). -->
+    <PackageVersion Include="Scriban" Version="7.5.3" />
+    <PackageVersion Include="AvalonEdit" Version="6.3.1.120" />
+    <PackageVersion Include="DiffPlex.Wpf" Version="1.9.1" />
   </ItemGroup>
   <ItemGroup Label="Tests">
     <PackageVersion Include="Shouldly" Version="4.3.0" />
@@ -16,6 +20,7 @@
     <PackageVersion Include="xunit.v3.mtp-off" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <!-- No Verify: its binaries ship under a maintenance-fee EULA, not MIT (D-62). Snapshots use tests/…/Snapshot.cs. -->
   </ItemGroup>
   <ItemGroup Label="SampleApp">
     <PackageVersion Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />

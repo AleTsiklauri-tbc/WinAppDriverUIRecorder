@@ -12,10 +12,18 @@ public static partial class NameRules
 {
     public const int MaxLength = 80;
 
+    /// <summary>Control types whose Name is a window title.</summary>
+    public static bool IsTitled(string controlType) => controlType is "Window" or "TitleBar";
+
+    /// <summary>
+    /// Whether a Name may identify the control in a locator or a variable name. A window's Name, and its title bar's, is
+    /// its title, which in LMS shows the open customer: never (ARCHITECTURE §7, D-70).
+    /// </summary>
     public static NameVerdict Evaluate(string? name, string controlType)
     {
         ArgumentNullException.ThrowIfNull(controlType);
         if (string.IsNullOrWhiteSpace(name)
+            || IsTitled(controlType)
             || name.Length > MaxLength
             || name.AsSpan().IndexOfAny('\r', '\n') >= 0
             || IsControlTypeName(name, controlType))

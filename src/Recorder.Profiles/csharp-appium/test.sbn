@@ -1,0 +1,60 @@
+using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Windows;
+{{~ if test.uses.actions ~}}
+using OpenQA.Selenium.Interactions;
+{{~ end ~}}
+using {{ profile.package }};
+
+namespace {{ profile.test_package }}
+{
+    [TestClass]
+    public class {{ test.class_name }}
+    {
+        private WindowsDriver<WindowsElement> _driver;
+
+        public TestContext TestContext { get; set; }
+
+        [TestInitialize]
+        public void StartSession()
+        {
+            var options = new AppiumOptions();
+            options.AddAdditionalCapability("app", Setting("AppPath"));
+            _driver = new WindowsDriver<WindowsElement>(new Uri(Setting("WinAppDriverUrl", "http://127.0.0.1:4723")), options);
+            _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+        }
+
+        [TestCleanup]
+        public void EndSession()
+        {
+            _driver?.Quit();
+        }
+
+        [TestMethod]
+        [Description({{ test.description | literal }})]
+        public void {{ test.method }}()
+        {
+{{~ for block in test.blocks ~}}
+{{~ if block.kind == "statement" ~}}
+{{~ if block.declare_page ~}}
+            var {{ block.page.variable }} = new {{ block.page.class_name }}(_driver);
+{{~ end ~}}
+{{ indent_lines block.body "            " }}
+{{~ else if block.kind == "comment" ~}}
+{{ indent_lines block.body "            " }}
+{{~ else ~}}
+            // Skipped: {{ block.comment }}
+{{~ end ~}}
+{{~ end ~}}
+        }
+
+        // AppPath, WinAppDriverUrl and the test data keys come from the run settings (TestRunParameters).
+        private string Setting(string name, string fallback = null)
+        {
+            return TestContext.Properties[name] as string ?? fallback
+                ?? throw new InvalidOperationException("Set " + name + " in the run settings (TestRunParameters).");
+        }
+    }
+}

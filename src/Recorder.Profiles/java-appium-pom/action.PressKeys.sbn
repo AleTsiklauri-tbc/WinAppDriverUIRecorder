@@ -1,0 +1,5 @@
+{{~ if element ~}}
+{{ target }}.sendKeys({{ keys }});
+{{~ else ~}}
+new Actions(winDriver).sendKeys({{ keys }}).perform();
+{{~ end ~}}

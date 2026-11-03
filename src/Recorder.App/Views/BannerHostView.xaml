@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="clr-namespace:Recorder.App.Resources">
     <!-- Persistent conditions: target closed, elevation mismatch, shortcut taken. -->
-    <ItemsControl ItemsSource="{Binding Banners.Items}" Focusable="False" AutomationProperties.AutomationId="Banners">
+    <ItemsControl ItemsSource="{Binding Banners.Items}" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.List_Banners}" AutomationProperties.AutomationId="Banners">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <Border Margin="8,8,8,0" Padding="12,8" BorderThickness="1" CornerRadius="{StaticResource Radius}"

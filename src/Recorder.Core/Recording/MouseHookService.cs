@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Recorder.Core.Interop;
@@ -14,8 +15,10 @@ public enum MouseAction
     Wheel,
 }
 
+/// <param name="Time">The system's millisecond tick count for the event (for double-click timing).</param>
 /// <param name="Swallowed">True when the event was kept from the target app (the Pick click).</param>
-public readonly record struct MouseHookEvent(MouseAction Action, PixelPoint Point, uint Time, bool Injected, bool Swallowed);
+/// <param name="WheelDelta">For a wheel event: positive away from the user, 120 per notch.</param>
+public readonly record struct MouseHookEvent(MouseAction Action, PixelPoint Point, uint Time, bool Injected, bool Swallowed, int WheelDelta = 0);
 
 public interface IMouseHook : IDisposable
 {
@@ -23,11 +26,20 @@ public interface IMouseHook : IDisposable
     event EventHandler<MouseHookEvent>? MouseEvent;
 
     /// <summary>
+    /// How long since the hook last saw any mouse input, moves included. Windows removes a low-level hook it finds too
+    /// slow without telling anyone: input that moves the cursor while this keeps growing means the hook is gone.
+    /// </summary>
+    TimeSpan IdleFor { get; }
+
+    /// <summary>
     /// Installs the hook. <paramref name="shouldSwallow"/> runs inside the hook callback for each button-down and
     /// must be fast; when it returns true that press and its matching release never reach the app.
     /// Returns false if Windows refused the hook (for example blocked by security software).
     /// </summary>
     bool Install(Func<MouseHookEvent, bool>? shouldSwallow);
+
+    /// <summary>Installs the hook again with the same predicate, after Windows removed it.</summary>
+    bool Reinstall();
 
     void Uninstall();
 }
@@ -47,10 +59,20 @@ public sealed class MouseHookService : IMouseHook
     private Thread? _thread;
     private uint _threadId;
     private Task? _dispatcher;
+    private long _lastActivity = Stopwatch.GetTimestamp();
 
     public event EventHandler<MouseHookEvent>? MouseEvent;
 
     public bool IsInstalled => _thread is not null;
+
+    public TimeSpan IdleFor => Stopwatch.GetElapsedTime(Volatile.Read(ref _lastActivity));
+
+    public bool Reinstall()
+    {
+        var shouldSwallow = _shouldSwallow;
+        Uninstall();
+        return Install(shouldSwallow);
+    }
 
     public bool Install(Func<MouseHookEvent, bool>? shouldSwallow)
     {
@@ -67,6 +89,7 @@ public sealed class MouseHookService : IMouseHook
 
         _shouldSwallow = shouldSwallow;
         _swallowNextRelease = null;
+        Volatile.Write(ref _lastActivity, Stopwatch.GetTimestamp());
         using var started = new ManualResetEventSlim();
         var installed = false;
         _thread = new Thread(() =>
@@ -154,6 +177,7 @@ public sealed class MouseHookService : IMouseHook
     // Returns true to swallow the event.
     private bool Handle(uint message, NativeMethods.MSLLHOOKSTRUCT data)
     {
+        Volatile.Write(ref _lastActivity, Stopwatch.GetTimestamp());
         MouseAction? action = message switch
         {
             NativeMethods.WM_LBUTTONDOWN => MouseAction.LeftDown,
@@ -169,7 +193,8 @@ public sealed class MouseHookService : IMouseHook
         }
 
         var hookEvent = new MouseHookEvent(
-            action.Value, new PixelPoint(data.Point.X, data.Point.Y), data.Time, (data.Flags & NativeMethods.LLMHF_INJECTED) != 0, Swallowed: false);
+            action.Value, new PixelPoint(data.Point.X, data.Point.Y), data.Time, (data.Flags & NativeMethods.LLMHF_INJECTED) != 0, Swallowed: false,
+            action == MouseAction.Wheel ? (short)(data.MouseData >> 16) : 0);
         var swallow = false;
         if (_swallowNextRelease == action)
         {

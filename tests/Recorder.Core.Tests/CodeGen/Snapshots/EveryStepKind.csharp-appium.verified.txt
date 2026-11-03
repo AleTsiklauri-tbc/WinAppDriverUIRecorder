@@ -1,0 +1,177 @@
+// ===== LoanPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class LoanPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public LoanPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement AmountInput => _driver.FindElementByAccessibilityId("txtAmount");
+        public WindowsElement PasswordInput => _driver.FindElementByAccessibilityId("txtPassword");
+        public WindowsElement CurrencyDropdown => _driver.FindElementByAccessibilityId("cmbCurrency");
+        public WindowsElement InsuredCheckbox => _driver.FindElementByAccessibilityId("chkInsured");
+        public WindowsElement ShowMessageButton => _driver.FindElementByAccessibilityId("btnShowMessage");
+        public WindowsElement LoansGrid => _driver.FindElementByAccessibilityId("dgvLoans");
+        public WindowsElement FixedRadio => _driver.FindElementByAccessibilityId("rbFixed");
+        public WindowsElement ScheduleTab => _driver.FindElementByAccessibilityId("tabSchedule");
+        public WindowsElement StatusLabel => _driver.FindElementByAccessibilityId("lblStatus");
+        public WindowsElement SaveButton => _driver.FindElementByAccessibilityId("btnSave");
+    }
+}
+
+// ===== MainPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class MainPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public MainPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement FileMenuItem => _driver.FindElementByName("File");
+    }
+}
+
+// ===== WindowPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class WindowPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public WindowPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement OkButton => _driver.FindElementByAccessibilityId("2");
+    }
+}
+
+// ===== ClientsPage.cs (Page) =====
+using OpenQA.Selenium.Appium.Windows;
+
+namespace Recorded.Pages
+{
+    public class ClientsPage
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public ClientsPage(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+        public WindowsElement ClientsWindow => _driver.FindElementByAccessibilityId("frmClients");
+    }
+}
+
+// ===== EveryStepKindTests.cs (Test) =====
+using System;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Windows;
+using OpenQA.Selenium.Interactions;
+using Recorded.Pages;
+
+namespace Recorded.Tests
+{
+    [TestClass]
+    public class EveryStepKindTests
+    {
+        private WindowsDriver<WindowsElement> _driver;
+
+        public TestContext TestContext { get; set; }
+
+        [TestInitialize]
+        public void StartSession()
+        {
+            var options = new AppiumOptions();
+            options.AddAdditionalCapability("app", Setting("AppPath"));
+            _driver = new WindowsDriver<WindowsElement>(new Uri(Setting("WinAppDriverUrl", "http://127.0.0.1:4723")), options);
+            _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(5);
+        }
+
+        [TestCleanup]
+        public void EndSession()
+        {
+            _driver?.Quit();
+        }
+
+        [TestMethod]
+        [Description("Every step kind")]
+        public void EveryStepKind()
+        {
+            var loanPage = new LoanPage(_driver);
+            loanPage.AmountInput.Clear();
+            loanPage.AmountInput.SendKeys("5000");
+            loanPage.PasswordInput.Clear();
+            loanPage.PasswordInput.SendKeys(Setting("passwordInput"));
+            loanPage.CurrencyDropdown.SendKeys("GEL");
+            loanPage.CurrencyDropdown.SendKeys(Keys.Enter);
+            if (!loanPage.InsuredCheckbox.Selected)
+            {
+                loanPage.InsuredCheckbox.Click();
+            }
+            var mainPage = new MainPage(_driver);
+            mainPage.FileMenuItem.Click();
+            _driver.FindElementByXPath("//MenuItem[@Name='Export']").Click();
+            _driver.FindElementByXPath("//MenuItem[@Name='PDF']").Click();
+            loanPage.ShowMessageButton.Click();
+            var windowPage = new WindowPage(_driver);
+            windowPage.OkButton.Click();
+            loanPage.LoansGrid.FindElementByXPath(".//*[@Name='Status Row 2' or starts-with(@Name,'Status Row 2,')]").Click();
+            new Actions(_driver).DoubleClick(loanPage.LoansGrid.FindElementByXPath(".//*[@Name='Client Row 0' or starts-with(@Name,'Client Row 0,')]")).Perform();
+            new Actions(_driver).ContextClick(loanPage.LoansGrid.FindElementByXPath(".//*[@Name=' Row 1' or starts-with(@Name,' Row 1,')]")).Perform();
+            loanPage.LoansGrid.FindElementByXPath(".//*[@Name='Status Row 4' or starts-with(@Name,'Status Row 4,')]").Click();
+            new Actions(_driver).DoubleClick(loanPage.AmountInput).Perform();
+            new Actions(_driver).ContextClick(loanPage.AmountInput).Perform();
+            loanPage.AmountInput.Clear();
+            loanPage.AmountInput.Clear();
+            loanPage.AmountInput.SendKeys("7 500,00 \"GEL\"");
+            if (loanPage.InsuredCheckbox.Selected)
+            {
+                loanPage.InsuredCheckbox.Click();
+            }
+            loanPage.InsuredCheckbox.Click();
+            if (!loanPage.FixedRadio.Selected)
+            {
+                loanPage.FixedRadio.Click();
+            }
+            loanPage.ScheduleTab.Click();
+            loanPage.PasswordInput.SendKeys(Keys.Enter);
+            new Actions(_driver).SendKeys(Keys.Control + "s" + Keys.Null).Perform();
+            _driver.SwitchTo().Window(_driver.WindowHandles[_driver.WindowHandles.Count - 1]);
+            Assert.IsTrue(loanPage.StatusLabel.Displayed, "statusLabel is visible");
+            Assert.IsFalse(loanPage.SaveButton.Enabled, "Save is disabled");
+            Assert.AreEqual("Ready", loanPage.StatusLabel.Text, "Text of statusLabel");
+            Assert.AreEqual("7 500,00 \"GEL\"", loanPage.AmountInput.GetAttribute("Value.Value"), "Value of Amount");
+            Assert.IsFalse(loanPage.InsuredCheckbox.Selected, "Insured is unchecked");
+            // Check the totals then save * /
+            // Scrolled down 3 notches in loansGrid
+            loanPage.SaveButton.Click();
+        }
+
+        // AppPath, WinAppDriverUrl and the test data keys come from the run settings (TestRunParameters).
+        private string Setting(string name, string fallback = null)
+        {
+            return TestContext.Properties[name] as string ?? fallback
+                ?? throw new InvalidOperationException("Set " + name + " in the run settings (TestRunParameters).");
+        }
+    }
+}
+

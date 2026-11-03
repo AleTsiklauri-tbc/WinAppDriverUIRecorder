@@ -1,0 +1,210 @@
+// ===== LoanPage.java (Page) =====
+package tbc.automation.pages;
+
+import io.appium.java_client.windows.WindowsDriver;
+import org.openqa.selenium.WebElement;
+import tbc.automation.pages.BasePage;
+
+public class LoanPage extends BasePage {
+    private final WindowsDriver winDriver;
+
+    public LoanPage(WindowsDriver driver) {
+        super(driver);
+        this.winDriver = driver;
+    }
+
+    // Locators only - all public for access from Steps classes
+    public WebElement getAmountInput(){return winDriver.findElementByAccessibilityId("txtAmount");}
+    public WebElement getPasswordInput(){return winDriver.findElementByAccessibilityId("txtPassword");}
+    public WebElement getCurrencyDropdown(){return winDriver.findElementByAccessibilityId("cmbCurrency");}
+    public WebElement getInsuredCheckbox(){return winDriver.findElementByAccessibilityId("chkInsured");}
+    public WebElement getShowMessageButton(){return winDriver.findElementByAccessibilityId("btnShowMessage");}
+    public WebElement getLoansGrid(){return winDriver.findElementByAccessibilityId("dgvLoans");}
+}
+
+// ===== LoanSteps.java (Steps) =====
+package tbc.automation.steps;
+
+import io.appium.java_client.windows.WindowsDriver;
+import org.openqa.selenium.Keys;
+import tbc.automation.pages.LoanPage;
+import tbc.automation.steps.GridSteps;
+import tbc.automation.utils.Log;
+
+public class LoanSteps {
+    private final WindowsDriver winDriver;
+    private final LoanPage loanPage;
+    private static final Log log = Log.getLogger(LoanSteps.class);
+
+    public LoanSteps(WindowsDriver driver) {
+        this.winDriver = driver;
+        this.loanPage = new LoanPage(driver);
+        log.info("LoanSteps initialized");
+    }
+
+    public LoanSteps enterAmount(String amount) {
+        log.info("Enter Amount: " + amount);
+        loanPage.getAmountInput().clear();
+        loanPage.getAmountInput().sendKeys(amount);
+        return this;
+    }
+
+    public LoanSteps enterPassword(String password) {
+        log.info("Enter Password");
+        loanPage.getPasswordInput().clear();
+        loanPage.getPasswordInput().sendKeys(password);
+        return this;
+    }
+
+    public LoanSteps selectCurrency(String currency) {
+        log.info("Select Currency: " + currency);
+        loanPage.getCurrencyDropdown().sendKeys(currency);
+        loanPage.getCurrencyDropdown().sendKeys(Keys.ENTER);
+        return this;
+    }
+
+    public LoanSteps checkInsuredCheckbox() {
+        log.info("Check Insured");
+        if (!loanPage.getInsuredCheckbox().isSelected()) {
+            loanPage.getInsuredCheckbox().click();
+        }
+        return this;
+    }
+
+    public LoanSteps clickShowMessageButton() {
+        log.info("Click Show message");
+        loanPage.getShowMessageButton().click();
+        return this;
+    }
+
+    public LoanSteps clickLoansGridCell(int rowIndex, String columnHeader) {
+        log.info("Click a cell of loansGrid: row " + rowIndex + ", column " + columnHeader);
+        new GridSteps(winDriver).clickCell(rowIndex, columnHeader);
+        return this;
+    }
+}
+
+// ===== MainPage.java (Page) =====
+package tbc.automation.pages;
+
+import io.appium.java_client.windows.WindowsDriver;
+import org.openqa.selenium.WebElement;
+import tbc.automation.pages.BasePage;
+
+public class MainPage extends BasePage {
+    private final WindowsDriver winDriver;
+
+    public MainPage(WindowsDriver driver) {
+        super(driver);
+        this.winDriver = driver;
+    }
+
+    // Locators only - all public for access from Steps classes
+    public WebElement getFileMenuItem(){return winDriver.findElementByName("File");}
+}
+
+// ===== MainSteps.java (Steps) =====
+package tbc.automation.steps;
+
+import io.appium.java_client.windows.WindowsDriver;
+import tbc.automation.pages.MainPage;
+import tbc.automation.utils.Log;
+
+public class MainSteps {
+    private final WindowsDriver winDriver;
+    private final MainPage mainPage;
+    private static final Log log = Log.getLogger(MainSteps.class);
+
+    public MainSteps(WindowsDriver driver) {
+        this.winDriver = driver;
+        this.mainPage = new MainPage(driver);
+        log.info("MainSteps initialized");
+    }
+
+    public MainSteps clickFileExportPdf() {
+        log.info("Click File > Export > PDF");
+        mainPage.getFileMenuItem().click();
+        winDriver.findElementByXPath("//MenuItem[@Name='Export']").click();
+        winDriver.findElementByXPath("//MenuItem[@Name='PDF']").click();
+        return this;
+    }
+}
+
+// ===== WindowPage.java (Page) =====
+package tbc.automation.pages;
+
+import io.appium.java_client.windows.WindowsDriver;
+import org.openqa.selenium.WebElement;
+import tbc.automation.pages.BasePage;
+
+public class WindowPage extends BasePage {
+    private final WindowsDriver winDriver;
+
+    public WindowPage(WindowsDriver driver) {
+        super(driver);
+        this.winDriver = driver;
+    }
+
+    // Locators only - all public for access from Steps classes
+    public WebElement getOkButton(){return winDriver.findElementByAccessibilityId("2");}
+}
+
+// ===== WindowSteps.java (Steps) =====
+package tbc.automation.steps;
+
+import io.appium.java_client.windows.WindowsDriver;
+import tbc.automation.pages.WindowPage;
+import tbc.automation.utils.Log;
+
+public class WindowSteps {
+    private final WindowsDriver winDriver;
+    private final WindowPage windowPage;
+    private static final Log log = Log.getLogger(WindowSteps.class);
+
+    public WindowSteps(WindowsDriver driver) {
+        this.winDriver = driver;
+        this.windowPage = new WindowPage(driver);
+        log.info("WindowSteps initialized");
+    }
+
+    public WindowSteps clickOkButton() {
+        log.info("Click OK");
+        windowPage.getOkButton().click();
+        return this;
+    }
+}
+
+// ===== LoanFlowTest.java (Test) =====
+package tbc.automation.tests;
+
+import org.testng.annotations.Test;
+import tbc.automation.BaseTest;
+import tbc.automation.config.ConfigReader;
+import tbc.automation.steps.LoanSteps;
+import tbc.automation.steps.MainSteps;
+import tbc.automation.steps.WindowSteps;
+import tbc.automation.utils.Log;
+
+@Test(description = "Loan flow")
+public class LoanFlowTest extends BaseTest {
+
+    private static final Log log = Log.getLogger(LoanFlowTest.class);
+
+    @Test(priority = 1)
+    public void loanFlow() {
+        log.info("Loan flow");
+        LoanSteps loanSteps = new LoanSteps(winDriver);
+        loanSteps
+                .enterAmount("5000")
+                .enterPassword(ConfigReader.getProperty("passwordInput"))
+                .selectCurrency("GEL")
+                .checkInsuredCheckbox();
+        MainSteps mainSteps = new MainSteps(winDriver);
+        mainSteps.clickFileExportPdf();
+        loanSteps.clickShowMessageButton();
+        WindowSteps windowSteps = new WindowSteps(winDriver);
+        windowSteps.clickOkButton();
+        loanSteps.clickLoansGridCell(2, "Status");
+    }
+}
+

@@ -54,7 +54,8 @@
 
                 <!-- Ancestors: click one to inspect it -->
                 <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Inspector_Ancestors}" />
-                <ItemsControl ItemsSource="{Binding Ancestors}" Focusable="False" AutomationProperties.AutomationId="Inspector.Ancestors">
+                <ItemsControl ItemsSource="{Binding Ancestors}" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.Inspector_Ancestors}"
+                              AutomationProperties.AutomationId="Inspector.Ancestors">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel />
@@ -102,7 +103,8 @@
                         </DockPanel>
 
                         <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Inspector_Properties}" />
-                        <ItemsControl ItemsSource="{Binding Properties}" Focusable="False" AutomationProperties.AutomationId="Inspector.Properties">
+                        <ItemsControl ItemsSource="{Binding Properties}" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.Inspector_Properties}"
+                                      AutomationProperties.AutomationId="Inspector.Properties">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,1">
@@ -129,7 +131,8 @@
                         </ItemsControl>
 
                         <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="{x:Static res:Strings.Inspector_Patterns}" />
-                        <ItemsControl ItemsSource="{Binding Patterns}" Focusable="False" AutomationProperties.AutomationId="Inspector.Patterns">
+                        <ItemsControl ItemsSource="{Binding Patterns}" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.Inspector_Patterns}"
+                                      AutomationProperties.AutomationId="Inspector.Patterns">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel />

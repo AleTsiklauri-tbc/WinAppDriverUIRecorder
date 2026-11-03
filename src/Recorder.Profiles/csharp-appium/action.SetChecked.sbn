@@ -1,0 +1,8 @@
+{{~ if state ~}}
+if ({{ if state == "true" }}!{{ end }}{{ target }}.Selected)
+{
+    {{ target }}.Click();
+}
+{{~ else ~}}
+{{ target }}.Click();
+{{~ end ~}}

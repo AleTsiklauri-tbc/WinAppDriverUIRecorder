@@ -32,6 +32,10 @@ public sealed class ToastService
     public void Show(string message) =>
         Post(new ToastViewModel(message, details: null, isError: false, Dismiss, CopyDetails), InfoDuration);
 
+    /// <summary>A toast with a button, like "Step deleted · Undo". It stays a little longer so the button can be reached.</summary>
+    public void Show(string message, string actionText, Action action) =>
+        Post(new ToastViewModel(message, details: null, isError: false, Dismiss, CopyDetails, actionText, action), ErrorDuration);
+
     public void ShowError(ErrorReport report)
     {
         ArgumentNullException.ThrowIfNull(report);

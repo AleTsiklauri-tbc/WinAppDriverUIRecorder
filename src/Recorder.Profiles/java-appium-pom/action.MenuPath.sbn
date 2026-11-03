@@ -1,0 +1,4 @@
+{{ target }}.click();
+{{~ for item in menu_items ~}}
+{{ item }}.click();
+{{~ end ~}}

@@ -1,0 +1,40 @@
+{
+  // C# profile: Appium.WebDriver 4 (WinAppDriver) with MSTest. Page classes expose elements as properties; the test calls
+  // them directly (no Steps layer) and reads the app path, the WinAppDriver address and secrets from the run settings.
+  "name": "C# · MSTest · Appium 4",
+  "language": "csharp",
+  "fileExtension": ".cs",
+  "highlighting": "C#",
+  "package": "Recorded.Pages",
+  "stepsPackage": "",
+  "testPackage": "Recorded.Tests",
+  "pageClassSuffix": "Page",
+  "stepsClassSuffix": "Steps",
+  "testClassSuffix": "Tests",
+  "stripPageIdPrefixes": ["frm"],
+  "indent": "    ",
+  "methodCase": "pascal",
+  "elementAccess": "{page}.{property}",
+  "locatorFormats": {
+    "AccessibilityId": "_driver.FindElementByAccessibilityId({value})",
+    "Name": "_driver.FindElementByName({value})",
+    "ClassName": "_driver.FindElementByClassName({value})",
+    "XPath": "_driver.FindElementByXPath({value})"
+  },
+  "testDataExpression": "Setting({key})",
+  "testLevelKinds": [],
+  "classes": {
+    "keys": "OpenQA.Selenium.Keys",
+    "actions": "OpenQA.Selenium.Interactions.Actions",
+    "assert": "Microsoft.VisualStudio.TestTools.UnitTesting.Assert",
+    "gridSteps": "GridSteps",
+    "utility": "Utility"
+  },
+  "merge": {
+    "member": "^(?:(?:public|internal|protected|private)\\s+)?WindowsElement\\s+(?<name>\\w+)\\s*=>\\s*[\\w.]*?(?<value>FindElementBy\\w+\\s*\\(\\s*\"(?:[^\"\\\\]|\\\\.)*\"\\s*\\))\\s*;$",
+    "method": "^(?:(?:public|protected|private|internal|static|virtual|override|async|sealed|new)\\s+)*[\\w.]+(?:<[^>]*>)?(?:\\[\\])?\\??\\s+(?<name>\\w+)\\s*\\([^)]*\\)\\s*(?:\\{|=>)",
+    "import": "^\\s*using\\s+(?:static\\s+)?(?:\\w+\\s*=\\s*)?[\\w.]+\\s*;",
+    "classDeclaration": "^\\s*(?:(?:public|internal|protected|private|static|sealed|abstract|partial)\\s+)*class\\s+(?<name>\\w+)",
+    "package": ""
+  }
+}

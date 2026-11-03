@@ -1,0 +1,58 @@
+{
+  // Java profile of LMSAutomationDemo (docs/target-style, spec 15): Page classes hold locators, Steps classes hold fluent
+  // actions that log each one, and a TestNG test chains the Steps. java-client 7.6.0 (Selenium 3): no AppiumBy (D-5).
+  "name": "Java · TestNG · Appium 7",
+  "language": "java",
+  "fileExtension": ".java",
+  "highlighting": "Java",
+  "package": "tbc.automation.pages",
+  "stepsPackage": "tbc.automation.steps",
+  "testPackage": "tbc.automation.tests",
+  "pageClassSuffix": "Page",
+  "stepsClassSuffix": "Steps",
+  "testClassSuffix": "Test",
+  "stripPageIdPrefixes": ["frm"],
+  "indent": "    ",
+  "methodCase": "camel",
+  // Variable names of elements captured from now on (spec 10.2, D-6): prefixes removed from AutomationIds, and suffixes
+  // by control type on top of the built-in ones. A name that already ends in such a word keeps it (clientNoEditBox).
+  "stripIdPrefixes": ["txt", "btn", "cmb", "cbo", "chk", "rb", "lbl", "dgv", "grd", "tab", "pnl", "frm"],
+  "elementSuffixByControlType": {
+    "Edit": "Input", "Button": "Button", "ComboBox": "Dropdown", "CheckBox": "Checkbox", "RadioButton": "Radio",
+    "DataGrid": "Grid", "Table": "Grid", "TabItem": "Tab", "Text": "Label", "MenuItem": "MenuItem", "List": "List", "Tree": "Tree"
+  },
+  "elementAccess": "{page}.{getter}()",
+  "locatorFormats": {
+    "AccessibilityId": "winDriver.findElementByAccessibilityId({value})",
+    "Name": "winDriver.findElementByName({value})",
+    "ClassName": "winDriver.findElementByClassName({value})",
+    "XPath": "winDriver.findElementByXPath({value})"
+  },
+  // Secrets come from config (D-9): the key is the field's variable name.
+  "testDataExpression": "ConfigReader.getProperty({key})",
+  "testLevelKinds": ["SwitchWindow", "AssertVisible", "AssertEnabled", "AssertText", "AssertValue", "AssertChecked"],
+  "classes": {
+    "windowsDriver": "io.appium.java_client.windows.WindowsDriver",
+    "webElement": "org.openqa.selenium.WebElement",
+    "keys": "org.openqa.selenium.Keys",
+    "actions": "org.openqa.selenium.interactions.Actions",
+    "assert": "org.testng.Assert",
+    "test": "org.testng.annotations.Test",
+    "basePage": "tbc.automation.pages.BasePage",
+    "baseTest": "tbc.automation.BaseTest",
+    "log": "tbc.automation.utils.Log",
+    "configReader": "tbc.automation.config.ConfigReader",
+    "gridSteps": "tbc.automation.steps.GridSteps",
+    "utility": "tbc.automation.utils.Utility"
+  },
+  // "Merge into existing file" (spec 10.5). Member and method patterns are matched against one declaration with its
+  // line breaks and runs of spaces turned into single spaces. A member's "value" is its find call with the literal:
+  // two getters with the same value find the same element, whatever the driver variable is called.
+  "merge": {
+    "member": "^(?:(?:public|protected|private)\\s+)?WebElement\\s+(?<name>\\w+)\\s*\\(\\s*\\)\\s*\\{\\s*return\\s+[\\w.]*?(?<value>findElementBy\\w+\\s*\\(\\s*\"(?:[^\"\\\\]|\\\\.)*\"\\s*\\))\\s*;\\s*\\}$",
+    "method": "^(?:(?:public|protected|private|static|final|synchronized|abstract)\\s+)*(?:<[^>]+>\\s+)?[\\w.]+(?:<[^>]*>)?(?:\\[\\])*\\s+(?<name>\\w+)\\s*\\([^)]*\\)\\s*(?:throws\\s+[\\w.,\\s]+?)?\\s*\\{",
+    "import": "^\\s*import\\s+(?:static\\s+)?[\\w.]+(?:\\.\\*)?\\s*;",
+    "classDeclaration": "^\\s*(?:(?:public|protected|private|abstract|final|static)\\s+)*class\\s+(?<name>\\w+)",
+    "package": "^\\s*package\\s+[\\w.]+\\s*;"
+  }
+}

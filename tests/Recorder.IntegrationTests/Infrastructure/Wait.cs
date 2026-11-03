@@ -32,6 +32,20 @@ internal static class Wait
     public static void Until(Func<bool> condition, TimeSpan timeout, string what) =>
         For(() => condition() ? new object() : null, timeout, what);
 
+    /// <summary>Like the other overload, but the message is made on timeout, so it can say what was there instead.</summary>
+    public static void Until(Func<bool> condition, TimeSpan timeout, Func<string> what)
+    {
+        ArgumentNullException.ThrowIfNull(what);
+        try
+        {
+            Until(condition, timeout, string.Empty);
+        }
+        catch (TimeoutException)
+        {
+            throw new TimeoutException($"Timed out after {timeout.TotalSeconds:0.#} s waiting for {what()}.");
+        }
+    }
+
     public static AutomationElement ForDescendant(AutomationElement root, string automationId, TimeSpan? timeout = null) =>
         For(() => root.FindFirstDescendant(c => c.ByAutomationId(automationId)), timeout ?? TimeSpan.FromSeconds(10), $"element '{automationId}'");
 }

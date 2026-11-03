@@ -17,4 +17,8 @@
     <ProjectReference Include="..\..\src\Recorder.Core\Recorder.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\JavaCompileCheck\JavaCompileCheck.cs" Link="CodeGen\JavaCompileCheck.cs" />
+  </ItemGroup>
+
 </Project>

@@ -5,6 +5,14 @@ namespace Recorder.Core.Interop;
 internal static unsafe partial class NativeMethods
 {
     public const int WH_MOUSE_LL = 14;
+    public const int WH_KEYBOARD_LL = 13;
+    public const uint WM_KEYDOWN = 0x0100;
+    public const uint WM_SYSKEYDOWN = 0x0104;
+    public const int VK_SHIFT = 0x10;
+    public const int VK_CONTROL = 0x11;
+    public const int VK_MENU = 0x12;
+    public const int VK_LWIN = 0x5B;
+    public const int VK_RWIN = 0x5C;
     public const uint WM_QUIT = 0x0012;
     public const uint WM_MOUSEMOVE = 0x0200;
     public const uint WM_LBUTTONDOWN = 0x0201;
@@ -39,6 +47,16 @@ internal static unsafe partial class NativeMethods
     {
         public POINT Point;
         public uint MouseData;
+        public uint Flags;
+        public uint Time;
+        public nuint ExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KBDLLHOOKSTRUCT
+    {
+        public uint VirtualKey;
+        public uint ScanCode;
         public uint Flags;
         public uint Time;
         public nuint ExtraInfo;
@@ -113,6 +131,15 @@ internal static unsafe partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial nint GetWindow(nint hwnd, uint command);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    public static partial short GetAsyncKeyState(int virtualKey);
+
+    [LibraryImport("user32.dll")]
+    public static partial uint GetDoubleClickTime();
 
     [LibraryImport("user32.dll", EntryPoint = "SetWindowsHookExW", SetLastError = true)]
     public static partial nint SetWindowsHookEx(int hookId, delegate* unmanaged<int, nint, nint, nint> proc, nint module, uint threadId);

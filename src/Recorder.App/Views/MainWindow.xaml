@@ -11,10 +11,30 @@
     <Window.InputBindings>
         <KeyBinding Gesture="Ctrl+F" Command="{x:Static views:MainWindow.FilterElementsCommand}" />
         <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyJavaLineCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding Code.CopyCommand}" />
+        <KeyBinding Gesture="Ctrl+E" Command="{Binding Code.ExportCommand}" />
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}" />
+        <KeyBinding Key="F1" Command="{Binding CheatSheet.ToggleCommand}" />
     </Window.InputBindings>
     <Window.CommandBindings>
         <CommandBinding Command="{x:Static views:MainWindow.FilterElementsCommand}" Executed="OnFilterElements" />
     </Window.CommandBindings>
+    <Window.Resources>
+        <DataTemplate x:Key="CheatSheetRowTemplate">
+            <Grid Margin="0,6,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Style="{StaticResource MonoTextStyle}" Margin="0,0,12,0" TextWrapping="Wrap" Text="{Binding Keys}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap" Text="{Binding Action}" />
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -26,27 +46,32 @@
         <views:ToolbarView Grid.Row="0" />
         <views:BannerHostView Grid.Row="1" />
 
-        <Grid Grid.Row="2">
+        <!-- The code pane sits right of the Inspector or below it (spec 11.2): MainWindowLayout moves it and keeps the splits. -->
+        <Grid Grid.Row="2" x:Name="ContentGrid">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300" MinWidth="220" />
+                <ColumnDefinition x:Name="LeftColumn" Width="300" MinWidth="220" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" MinWidth="360" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="360" MinWidth="240" />
+                <ColumnDefinition x:Name="CodeSplitterColumn" Width="Auto" />
+                <ColumnDefinition x:Name="CodeColumn" Width="360" MinWidth="240" />
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" MinHeight="200" />
+                <RowDefinition x:Name="CodeSplitterRow" Height="0" />
+                <RowDefinition x:Name="CodeRow" Height="0" />
+            </Grid.RowDefinitions>
 
-            <TabControl Grid.Column="0" Margin="8,8,0,8" SelectedIndex="{Binding SelectedLeftTab}" AutomationProperties.AutomationId="LeftPane">
+            <TabControl Grid.Column="0" Grid.RowSpan="3" Margin="8,8,0,8" SelectedIndex="{Binding SelectedLeftTab}" AutomationProperties.AutomationId="LeftPane">
                 <TabItem Header="{x:Static res:Strings.Steps_Tab}" AutomationProperties.AutomationId="Tab.Steps">
-                    <TextBlock Style="{StaticResource EmptyStateTextStyle}"
-                               Text="{x:Static res:Strings.Steps_Empty}"
-                               AutomationProperties.AutomationId="Steps.Empty" />
+                    <views:StepsView x:Name="StepsPane" DataContext="{Binding Steps}" />
                 </TabItem>
                 <TabItem Header="{x:Static res:Strings.Elements_Tab}" AutomationProperties.AutomationId="Tab.Elements">
                     <views:ElementsView x:Name="ElementsPane" DataContext="{Binding Elements}" />
                 </TabItem>
             </TabControl>
 
-            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"
+            <GridSplitter Grid.Column="1" Grid.RowSpan="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent"
+                          AutomationProperties.Name="{x:Static res:Strings.Splitter_Left}"
                           AutomationProperties.AutomationId="Splitter.Left" />
 
             <Grid Grid.Column="2" AutomationProperties.AutomationId="CenterPane">
@@ -55,23 +80,22 @@
                                      Visibility="{Binding DataContext.FirstRun.HasWork, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
             </Grid>
 
-            <GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent"
+            <GridSplitter x:Name="CodeSplitter" Grid.Column="3" Grid.RowSpan="3" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          Background="Transparent" AutomationProperties.Name="{x:Static res:Strings.Splitter_Code}"
                           AutomationProperties.AutomationId="Splitter.Right" />
 
-            <Border Grid.Column="4" Margin="0,8,8,8" BorderThickness="1"
+            <Border x:Name="CodePane" Grid.Column="4" Grid.RowSpan="3" Margin="0,8,8,8" BorderThickness="1"
                     CornerRadius="{StaticResource Radius}"
                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     AutomationProperties.AutomationId="CodePane">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource PaneHeaderTextStyle}" Text="{x:Static res:Strings.Code_Title}" />
-                    <TextBlock Style="{StaticResource EmptyStateTextStyle}"
-                               Text="{x:Static res:Strings.Code_Empty}"
-                               AutomationProperties.AutomationId="Code.Empty" />
-                </DockPanel>
+                <views:CodeView DataContext="{Binding Code}" />
             </Border>
 
-            <views:ToastHostView Grid.Column="0" Grid.ColumnSpan="5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" />
+            <!-- While recording, toasts show under the mini-bar instead (spec 11.5). -->
+            <views:ToastHostView Grid.Column="0" Grid.ColumnSpan="5" Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16"
+                                 DataContext="{Binding Toasts}"
+                                 Visibility="{Binding DataContext.Recording.IsIdle, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibility}}" />
         </Grid>
 
         <StatusBar Grid.Row="3" AutomationProperties.AutomationId="StatusBar">
@@ -93,5 +117,37 @@
                 </StackPanel>
             </StatusBarItem>
         </StatusBar>
+
+        <!-- The cheat sheet (spec 11.9), over everything until Esc, Close or a click beside the card. Tab stays inside it. -->
+        <Grid Grid.RowSpan="4" x:Name="CheatSheetLayer" Background="#80000000" KeyboardNavigation.TabNavigation="Cycle"
+              Visibility="{Binding CheatSheet.IsOpen, Converter={StaticResource BoolToVisibility}}"
+              MouseLeftButtonDown="OnCheatSheetBackdropClick"
+              AutomationProperties.Name="{x:Static res:Strings.CheatSheet_Title}"
+              AutomationProperties.AutomationId="CheatSheet">
+            <Grid.InputBindings>
+                <KeyBinding Key="Escape" Command="{Binding CheatSheet.CloseCommand}" />
+            </Grid.InputBindings>
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="680" Margin="24" Padding="24,20" BorderThickness="1"
+                    CornerRadius="{StaticResource Radius}"
+                    Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    MouseLeftButtonDown="OnCheatSheetCardClick">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource TitleTextStyle}" Text="{x:Static res:Strings.CheatSheet_Title}" />
+                    <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Margin="0,16,0,2" Text="{x:Static res:Strings.CheatSheet_Global}" />
+                    <ItemsControl ItemsSource="{Binding CheatSheet.Global}" ItemTemplate="{StaticResource CheatSheetRowTemplate}" Focusable="False"
+                                  AutomationProperties.Name="{x:Static res:Strings.CheatSheet_Global}" AutomationProperties.AutomationId="CheatSheet.Global" />
+                    <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Margin="0,16,0,2" Text="{x:Static res:Strings.CheatSheet_App}" />
+                    <ItemsControl ItemsSource="{Binding CheatSheet.App}" ItemTemplate="{StaticResource CheatSheetRowTemplate}" Focusable="False"
+                                  AutomationProperties.Name="{x:Static res:Strings.CheatSheet_App}" AutomationProperties.AutomationId="CheatSheet.App" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                        <Button Margin="0,0,8,0" Content="{x:Static res:Strings.CheatSheet_Change}" Command="{Binding CheatSheet.ChangeShortcutsCommand}"
+                                AutomationProperties.AutomationId="CheatSheet.Change" />
+                        <Button x:Name="CheatSheetClose" Style="{StaticResource AccentButtonStyle}" Content="{x:Static res:Strings.CheatSheet_Close}"
+                                Command="{Binding CheatSheet.CloseCommand}" AutomationProperties.AutomationId="CheatSheet.Close" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

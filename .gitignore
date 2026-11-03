@@ -15,8 +15,11 @@ TestResults/
 *.suo
 *.rsuser
 
-# Verify snapshot testing: only *.verified.* files are committed
+# Snapshot tests: only *.verified.* files are committed
 *.received.*
+
+# Jars for the Java compile check, copied from Maven Central or ~/.m2 (tests/JavaCompileCheck/README.md)
+tests/JavaCompileCheck/lib/
 
 # WebView2 user data created by the SampleApp next to its exe
 *.WebView2/

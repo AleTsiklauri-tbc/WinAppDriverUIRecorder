@@ -18,6 +18,10 @@
     <ProjectReference Include="..\..\src\Recorder.Core\Recorder.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\JavaCompileCheck\JavaCompileCheck.cs" Link="Infrastructure\JavaCompileCheck.cs" />
+  </ItemGroup>
+
   <!-- Build order only: the tests launch these executables; they are not referenced as assemblies. -->
   <ItemGroup>
     <ProjectReference Include="..\Recorder.SampleApp\Recorder.SampleApp.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />

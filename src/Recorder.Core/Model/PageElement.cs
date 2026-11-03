@@ -21,7 +21,8 @@ public sealed class PageElement
 
     public Guid Id { get; }
 
-    public PageKey Page { get; }
+    /// <summary>The page it belongs to. Changes only when a numbered page from a recording finds its window again (D-70).</summary>
+    public PageKey Page { get; internal set; }
 
     /// <summary>The latest capture of this element.</summary>
     public ElementSnapshot Snapshot { get; private set; }
@@ -72,6 +73,27 @@ public sealed class PageElement
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>Puts a name back exactly as it was (undo), including whether the user had typed it.</summary>
+    internal void RestoreName(string name, bool userRenamed)
+    {
+        VariableName = name;
+        UserRenamed = userRenamed;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Puts a locator choice back exactly as it was (undo, or a recording opened from a file).</summary>
+    internal void RestoreChoice(int index, bool userChose)
+    {
+        if (Locators is null || index < -1 || index >= Locators.Candidates.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        SelectedIndex = index;
+        UserChoseLocator = userChose;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     internal void Recaptured(ElementSnapshot snapshot)
     {
         Snapshot = snapshot;
@@ -85,9 +107,28 @@ public sealed class PageModel
 
     public PageModel(PageKey key) => Key = key;
 
-    public PageKey Key { get; }
+    public PageKey Key { get; private set; }
+
+    /// <summary>The page class name the user typed (spec 10.2); null for the one derived from the form.</summary>
+    public string? ClassName { get; private set; }
 
     public IReadOnlyList<PageElement> Elements => _elements;
+
+    internal void Rename(string? className) => ClassName = className;
+
+    /// <summary>Takes over another page's key and elements (a numbered page from a recording that found its window, D-70).</summary>
+    internal void Absorb(PageModel live)
+    {
+        Key = live.Key;
+        _elements.AddRange(live._elements);
+        live._elements.Clear();
+        foreach (var element in _elements)
+        {
+            element.Page = Key;
+        }
+
+        ClassName ??= live.ClassName;
+    }
 
     internal void Add(PageElement element) => _elements.Add(element);
 

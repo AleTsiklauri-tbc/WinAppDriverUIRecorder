@@ -1,0 +1,1 @@
+Assert.assertEquals({{ target }}.getText(), {{ value }}, {{ description | literal }});

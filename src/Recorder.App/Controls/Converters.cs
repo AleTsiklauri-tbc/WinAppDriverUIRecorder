@@ -32,3 +32,22 @@ public sealed class VisibilityConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 }
+
+/// <summary>True when the value is set (as for <see cref="VisibilityConverter"/>): enables a box only when it has something to edit.</summary>
+public sealed class IsSetConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => InverseVisibilityConverter.IsSet(value);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>An enum value as a tab index and back: tabs listed in the order of the enum's values.</summary>
+public sealed class EnumToIndexConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Enum ? System.Convert.ToInt32(value, CultureInfo.InvariantCulture) : -1;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is int index && index >= 0 && targetType.IsEnum ? Enum.ToObject(targetType, index) : Binding.DoNothing;
+}

@@ -3,8 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:res="clr-namespace:Recorder.App.Resources"
              Focusable="False">
-    <!-- Non-blocking notifications. Errors show a plain message; details go only to the clipboard. -->
-    <ItemsControl ItemsSource="{Binding Toasts.Items}" AutomationProperties.AutomationId="Toasts">
+    <!-- DataContext: ToastService. Non-blocking notifications. Errors show a plain message; details go only to the clipboard. -->
+    <ItemsControl ItemsSource="{Binding Items}" AutomationProperties.Name="{x:Static res:Strings.List_Toasts}" AutomationProperties.AutomationId="Toasts">
         <ItemsControl.ItemTemplate>
             <DataTemplate>
                 <Border Margin="0,8,0,0" Padding="12,8" MaxWidth="380" BorderThickness="1"
@@ -35,6 +35,12 @@
                                     Command="{Binding CopyDetailsCommand}"
                                     Visibility="{Binding HasDetails, Converter={StaticResource BoolToVisibility}}"
                                     AutomationProperties.AutomationId="Toast.CopyDetails" />
+                            <Button HorizontalAlignment="Left" Margin="0,8,0,0"
+                                    Content="{Binding ActionText}"
+                                    Command="{Binding RunActionCommand}"
+                                    Visibility="{Binding HasAction, Converter={StaticResource BoolToVisibility}}"
+                                    AutomationProperties.Name="{Binding ActionText}"
+                                    AutomationProperties.AutomationId="Toast.Action" />
                         </StackPanel>
                     </DockPanel>
                 </Border>

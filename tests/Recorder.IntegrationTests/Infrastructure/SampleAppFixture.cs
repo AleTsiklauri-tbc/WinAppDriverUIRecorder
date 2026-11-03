@@ -11,6 +11,11 @@ public sealed class SampleAppFixture : IDisposable
     public SampleAppFixture()
     {
         Session = AppSession.Launch(new ProcessStartInfo(TestPaths.SampleAppExe));
+        if (Monitors.Chosen() is { } monitor)
+        {
+            Monitors.MoveOnto(MainWindowHandle, monitor);
+        }
+
         Loan = Wait.ForDescendant(Session.MainWindow, "frmLoan");
     }
 

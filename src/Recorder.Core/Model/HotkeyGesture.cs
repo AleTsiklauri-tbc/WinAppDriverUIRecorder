@@ -19,6 +19,7 @@ public sealed record HotkeyGesture(HotkeyModifiers Modifiers, int VirtualKey, st
     {
         ["Esc"] = 0x1B, ["Escape"] = 0x1B, ["Space"] = 0x20, ["Enter"] = 0x0D, ["Tab"] = 0x09,
         ["Insert"] = 0x2D, ["Delete"] = 0x2E, ["Home"] = 0x24, ["End"] = 0x23, ["PageUp"] = 0x21, ["PageDown"] = 0x22,
+        ["Left"] = 0x25, ["Up"] = 0x26, ["Right"] = 0x27, ["Down"] = 0x28,
     };
 
     public static HotkeyGesture Escape { get; } = new(HotkeyModifiers.None, 0x1B, "Esc");

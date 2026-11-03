@@ -40,6 +40,9 @@ public enum HoverKind
 /// <param name="Latency">From the cursor arriving at the point to the element being known.</param>
 public sealed record HoverUpdate(HoverKind Kind, ElementSnapshot? Element, TimeSpan Latency);
 
+/// <summary>The element under the resting cursor and when it was last looked up (a <see cref="TimeProvider"/> timestamp).</summary>
+public sealed record HoverSample(ElementSnapshot Element, long Timestamp);
+
 /// <summary>
 /// Polls the cursor (no hook needed for hovering), debounces, and looks up the element under it.
 /// Lookups are latest-wins; a result is published only if no newer lookup has started since.
@@ -59,6 +62,7 @@ public sealed partial class HoverTracker : IAsyncDisposable
     private int _inFlight;
     private long _refreshDue;
     private HoverUpdate? _published;
+    private HoverSample? _latest;
 
     public HoverTracker(ICursor cursor, IUiaService uia, ITargetFilter filter, HoverOptions options, TimeProvider time, ILogger<HoverTracker> logger)
     {
@@ -75,6 +79,12 @@ public sealed partial class HoverTracker : IAsyncDisposable
 
     public bool IsRunning => _loop is not null;
 
+    /// <summary>
+    /// The hover cache: the element under the resting cursor, refreshed with every lookup even when nothing changed and
+    /// so nothing was published. Null while the cursor is away from the target, the target is busy, or the tracker is stopped.
+    /// </summary>
+    public HoverSample? Latest => Volatile.Read(ref _latest);
+
     public void Start()
     {
         if (_loop is not null)
@@ -83,6 +93,7 @@ public sealed partial class HoverTracker : IAsyncDisposable
         }
 
         _published = null;
+        Volatile.Write(ref _latest, null);
         _run = new CancellationTokenSource();
         _loop = Task.Run(() => RunAsync(_run.Token));
     }
@@ -100,6 +111,7 @@ public sealed partial class HoverTracker : IAsyncDisposable
         _run = null;
         _loop = null;
         Interlocked.Increment(ref _generation);
+        Volatile.Write(ref _latest, null);
     }
 
     public ValueTask DisposeAsync() => new(StopAsync());
@@ -133,6 +145,7 @@ public sealed partial class HoverTracker : IAsyncDisposable
                 if (!_filter.IsOverTarget(point.Value))
                 {
                     ScheduleRefresh();
+                    Volatile.Write(ref _latest, null);
                     Publish(new HoverUpdate(HoverKind.Away, null, TimeSpan.Zero));
                     continue;
                 }
@@ -174,6 +187,7 @@ public sealed partial class HoverTracker : IAsyncDisposable
                 LogHover(_logger, latency.TotalMilliseconds);
             }
 
+            Volatile.Write(ref _latest, update.Element is { } element ? new HoverSample(element, _time.GetTimestamp()) : null);
             Publish(update);
         }
         finally

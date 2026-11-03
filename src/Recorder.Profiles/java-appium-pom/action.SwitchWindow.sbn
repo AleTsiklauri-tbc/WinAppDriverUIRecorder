@@ -1,0 +1,1 @@
+new {{ simple_name profile.classes.utility }}().printAndSwitchToAllWindows(winDriver);

@@ -4,6 +4,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Line numbers in logged stack traces, with no .pdb files next to the single-file exe (D-82). -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <!-- Networking stays explicit: only Recorder.Core/Verification may use it. -->

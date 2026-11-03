@@ -1,0 +1,59 @@
+<Window x:Class="Recorder.App.Views.MergePreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="clr-namespace:Recorder.App.Resources"
+        xmlns:diff="clr-namespace:DiffPlex.Wpf.Controls;assembly=DiffPlex.Wpf"
+        Title="{Binding Title}"
+        Width="1100" Height="720" MinWidth="720" MinHeight="420"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FontFamily="{StaticResource UiFontFamily}"
+        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+        AutomationProperties.AutomationId="MergePreview">
+    <!-- DataContext: MergePreviewViewModel. Spec 10.5: always a side-by-side preview before anything is written. -->
+    <DockPanel Margin="{StaticResource Space2}">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Margin="0,0,8,0" Content="{x:Static res:Strings.Merge_CopyNewMembers}" Command="{Binding CopyNewMembersCommand}"
+                    ToolTip="{x:Static res:Strings.Merge_CopyNewMembers_Tip}" AutomationProperties.AutomationId="Merge.CopyNewMembers" />
+            <Button Margin="0,0,8,0" Style="{StaticResource AccentButtonStyle}" Content="{x:Static res:Strings.Merge_Apply}" IsDefault="True"
+                    IsEnabled="{Binding CanApply}" Click="OnApply"
+                    ToolTip="{x:Static res:Strings.Merge_Apply_Tip}" AutomationProperties.AutomationId="Merge.Apply" />
+            <Button Content="{x:Static res:Strings.Merge_Cancel}" IsCancel="True" AutomationProperties.AutomationId="Merge.Cancel" />
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+            <TextBlock Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                       Text="{Binding Problem}" Visibility="{Binding Problem, Converter={StaticResource ToVisibility}}"
+                       AutomationProperties.AutomationId="Merge.Problem" />
+            <TextBlock Style="{StaticResource BodyTextStyle}" TextWrapping="Wrap" Text="{Binding Summary}"
+                       Visibility="{Binding Summary, Converter={StaticResource ToVisibility}}"
+                       AutomationProperties.AutomationId="Merge.Summary" />
+            <ItemsControl Margin="0,4,0,0" ItemsSource="{Binding Notes}" Focusable="False" AutomationProperties.Name="{x:Static res:Strings.List_Notes}"
+                          AutomationProperties.AutomationId="Merge.Notes">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,2,0,0" TextWrapping="Wrap" Text="{Binding}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <Border BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" CornerRadius="{StaticResource Radius}"
+                Visibility="{Binding IsUnderstood, Converter={StaticResource BoolToVisibility}}">
+            <!-- Light tints of green and red over the theme's own text colour: at least 11:1 contrast in light and dark (spec 11.8). -->
+            <diff:DiffViewer x:Name="Diff" IsSideBySide="True" IsCommandBarVisible="False" FontFamily="{StaticResource MonoFontFamily}" FontSize="12"
+                             OldText="{Binding OldText, Mode=OneTime}" NewText="{Binding NewText, Mode=OneTime}"
+                             OldTextHeader="{Binding OldHeader, Mode=OneTime}" NewTextHeader="{Binding NewHeader, Mode=OneTime}"
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                             HeaderForeground="{DynamicResource TextFillColorSecondaryBrush}"
+                             InsertedForeground="{DynamicResource TextFillColorPrimaryBrush}" InsertedBackground="#3328A745"
+                             DeletedForeground="{DynamicResource TextFillColorPrimaryBrush}" DeletedBackground="#33D13438"
+                             UnchangedForeground="{DynamicResource TextFillColorPrimaryBrush}" UnchangedBackground="Transparent"
+                             ImaginaryBackground="#18808080"
+                             LineNumberForeground="{DynamicResource TextFillColorSecondaryBrush}"
+                             ChangeTypeForeground="{DynamicResource TextFillColorSecondaryBrush}"
+                             SplitterBackground="{DynamicResource DividerStrokeColorDefaultBrush}"
+                             AutomationProperties.Name="{Binding Title}"
+                             AutomationProperties.AutomationId="Merge.Diff" />
+        </Border>
+    </DockPanel>
+</Window>

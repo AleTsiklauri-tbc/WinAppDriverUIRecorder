@@ -10,6 +10,7 @@ using Recorder.Core.CodeGen;
 using Recorder.Core.Locators;
 using Recorder.Core.Model;
 using Recorder.Core.Naming;
+using Recorder.Core.Recording;
 
 namespace Recorder.App.ViewModels;
 
@@ -34,6 +35,8 @@ public sealed partial class LocatorsViewModel : ObservableObject
     private readonly Overlays _overlays;
     private readonly IClipboardService _clipboard;
     private readonly ToastService _toasts;
+    private readonly EditHistory _history;
+    private readonly CodeProfiles _profiles;
     private PageElement? _element;
     private ElementSnapshot? _snapshot;
     private LocatorReport? _localReport;
@@ -48,10 +51,12 @@ public sealed partial class LocatorsViewModel : ObservableObject
 
     public LocatorsViewModel(
         ILocatorService locators, ElementLocating locating, ElementCatalog catalog, WinAppDriverService winAppDriver,
-        Overlays overlays, IClipboardService clipboard, ToastService toasts)
+        Overlays overlays, IClipboardService clipboard, ToastService toasts, EditHistory history, CodeProfiles profiles)
     {
         ArgumentNullException.ThrowIfNull(locating);
+        ArgumentNullException.ThrowIfNull(profiles);
         (_locators, _locating, _catalog, _overlays, _clipboard, _toasts) = (locators, locating, catalog, overlays, clipboard, toasts);
+        (_history, _profiles) = (history, profiles);
         VerifyPanel = new VerifyPanelViewModel(winAppDriver);
         locating.CheckingChanged += (_, element) =>
         {
@@ -59,6 +64,15 @@ public sealed partial class LocatorsViewModel : ObservableObject
             {
                 Refresh();
             }
+        };
+
+        // Another profile, or an edited snippet.sbn: the line and its labels change.
+        profiles.Changed += (_, _) =>
+        {
+            OnPropertyChanged(nameof(CodeLineTitle));
+            OnPropertyChanged(nameof(CopyLineText));
+            OnPropertyChanged(nameof(CopyLineTip));
+            Refresh();
         };
     }
 
@@ -78,8 +92,20 @@ public sealed partial class LocatorsViewModel : ObservableObject
     [ObservableProperty]
     public partial string? StatusMessage { get; private set; }
 
+    /// <summary>The selected locator as the active profile's snippet (snippet.sbn): the Java getter by default (D-32).</summary>
     [ObservableProperty]
     public partial string? JavaLine { get; private set; }
+
+    /// <summary>Why snippet.sbn failed, e.g. "snippet.sbn line 1: …"; null when it worked.</summary>
+    [ObservableProperty]
+    public partial string? CodeLineError { get; private set; }
+
+    /// <summary>"Java line" or "C# line", after the active profile.</summary>
+    public string CodeLineTitle => Text.Format(Strings.Locator_CodeLine, _profiles.LanguageName);
+
+    public string CopyLineText => Text.Format(Strings.Locator_CopyLine, _profiles.LanguageName);
+
+    public string CopyLineTip => Text.Format(Strings.Locator_CopyLine_Tip, _profiles.LanguageName);
 
     public bool HasSelected => Selected is not null;
 
@@ -135,7 +161,7 @@ public sealed partial class LocatorsViewModel : ObservableObject
             LocatorsState.Ready when !report!.HasUniqueLocator => Strings.Locator_NoUnique,
             _ => null,
         };
-        JavaLine = Selected is null || _snapshot is null ? null : JavaLocatorLine.Getter(VariableName(_snapshot), Selected.Candidate);
+        (JavaLine, CodeLineError) = Selected is null || _snapshot is null ? (null, null) : _profiles.Snippet(VariableName(_snapshot), _snapshot, Selected.Candidate);
         OnPropertyChanged(nameof(SelectedTitle));
         CheckAgainCommand.NotifyCanExecuteChanged();
     }
@@ -160,13 +186,16 @@ public sealed partial class LocatorsViewModel : ObservableObject
         }
     }
 
-    private string VariableName(ElementSnapshot snapshot) => _element?.VariableName ?? VariableNamer.Suggest(snapshot, []);
+    private string VariableName(ElementSnapshot snapshot) => _element?.VariableName ?? VariableNamer.Suggest(snapshot, [], _catalog.Naming);
 
     private void Choose(LocatorItemViewModel item)
     {
         if (_element is not null)
         {
-            _catalog.ChooseLocator(_element, item.Index);
+            // Undoable (spec 11.6): puts the earlier choice back exactly, including whether the user had made it.
+            var element = _element;
+            var (index, oldIndex, oldChose) = (item.Index, element.SelectedIndex, element.UserChoseLocator);
+            _history.Execute(() => _catalog.ChooseLocator(element, index), () => _catalog.RestoreChoice(element, oldIndex, oldChose));
         }
         else
         {

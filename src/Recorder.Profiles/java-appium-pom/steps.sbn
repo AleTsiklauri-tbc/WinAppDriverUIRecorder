@@ -1,0 +1,46 @@
+package {{ profile.steps_package }};
+
+{{~
+imports = [profile.classes.windowsDriver, profile.package + "." + page.class_name, profile.classes.log]
+if page.uses.keys
+  imports = imports | array.add profile.classes.keys
+end
+if page.uses.actions
+  imports = imports | array.add profile.classes.actions
+end
+if page.uses.grid_steps
+  imports = imports | array.add profile.classes.gridSteps
+end
+if page.uses.utility
+  imports = imports | array.add profile.classes.utility
+end
+for qualified in imports | array.uniq | array.sort
+~}}
+import {{ qualified }};
+{{~ end ~}}
+
+public class {{ page.steps_class_name }} {
+    private final {{ simple_name profile.classes.windowsDriver }} winDriver;
+    private final {{ page.class_name }} {{ page.variable }};
+    private static final {{ simple_name profile.classes.log }} log = {{ simple_name profile.classes.log }}.getLogger({{ page.steps_class_name }}.class);
+
+    public {{ page.steps_class_name }}({{ simple_name profile.classes.windowsDriver }} driver) {
+        this.winDriver = driver;
+        this.{{ page.variable }} = new {{ page.class_name }}(driver);
+        log.info({{ (page.steps_class_name + " initialized") | literal }});
+    }
+{{~ for action in page.actions ~}}
+
+    public {{ page.steps_class_name }} {{ action.method }}({{ for p in action.parameters }}{{ p.type }} {{ p.name }}{{ if !for.last }}, {{ end }}{{ end }}) {
+{{~ if action.logs_value ~}}
+        log.info({{ (action.description + ": ") | literal }} + {{ action.parameters[0].name }});
+{{~ else if (array.size action.parameters) == 2 ~}}
+        log.info({{ (action.description + ": row ") | literal }} + {{ action.parameters[0].name }} + ", column " + {{ action.parameters[1].name }});
+{{~ else ~}}
+        log.info({{ action.description | literal }});
+{{~ end ~}}
+{{ indent_lines action.body "        " }}
+        return this;
+    }
+{{~ end ~}}
+}

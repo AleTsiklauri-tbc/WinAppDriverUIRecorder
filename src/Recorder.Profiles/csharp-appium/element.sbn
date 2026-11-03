@@ -1,0 +1,1 @@
+public WindowsElement {{ element.property }} => {{ element.locator }};

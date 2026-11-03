@@ -26,6 +26,122 @@ public sealed record AppSettings
     public string WinAppDriverPathPrefix { get; init; } = string.Empty;
 
     public bool AllowRemoteWinAppDriver { get; init; }
+
+    /// <summary>Start or stop recording (spec 11.9). Registered while the recorder runs.</summary>
+    public string RecordHotkey { get; init; } = "F9";
+
+    /// <summary>Pause or resume. Registered only while recording, so F10 keeps working in other apps otherwise.</summary>
+    public string PauseHotkey { get; init; } = "F10";
+
+    /// <summary>Assert mode. Registered only while recording.</summary>
+    public string AssertHotkey { get; init; } = "Ctrl+Shift+A";
+
+    /// <summary>Spec 9.4: record Enter, Tab, Esc, F1–F12, Delete, arrows and Ctrl or Alt chords.</summary>
+    public bool RecordSpecialKeys { get; init; } = true;
+
+    /// <summary>Spec 9.3: every typed value becomes a test-data key instead of its text.</summary>
+    public bool MaskTypedValues { get; init; }
+
+    /// <summary>Spec 9.5: record wheel scrolls as comments.</summary>
+    public bool RecordScrolls { get; init; }
+
+    /// <summary>Spec 11.4: minimize the main window while recording; the mini-bar stays on top.</summary>
+    public bool MinimizeOnRecord { get; init; } = true;
+
+    /// <summary>Where the user last dragged the recording mini-bar (device-independent pixels); null for top center.</summary>
+    public double? MiniBarLeft { get; init; }
+
+    public double? MiniBarTop { get; init; }
+
+    /// <summary>The folder of the last recording saved or opened.</summary>
+    public string? LastRecordingFolder { get; init; }
+
+    /// <summary>The code profile the code pane uses (spec 10.1): a folder name, built-in or under the profiles folder.</summary>
+    public string ActiveProfile { get; init; } = "java-appium-pom";
+
+    /// <summary>The folder code was last saved, exported or merged in.</summary>
+    public string? LastCodeFolder { get; init; }
+
+    /// <summary>Light, dark, or as Windows is set (spec 12, General).</summary>
+    public ThemeChoice Theme { get; init; } = ThemeChoice.System;
+
+    /// <summary>Right of the Inspector or below it (spec 11.2).</summary>
+    public CodePanePosition CodePanePosition { get; init; } = CodePanePosition.Right;
+
+    /// <summary>Detailed logs add timings and statuses; they never hold names, values or titles (spec 12, Advanced).</summary>
+    public bool DetailedLogs { get; init; }
+
+    /// <summary>The main window's size, position and pane splits when it was last closed (spec 11.2).</summary>
+    public WindowLayout? Window { get; init; }
+
+    /// <summary>Recordings saved or opened lately, most recent first (spec 12).</summary>
+    public IReadOnlyList<string> RecentRecordings { get; init; } = [];
+}
+
+public enum ThemeChoice
+{
+    System,
+    Light,
+    Dark,
+}
+
+public enum CodePanePosition
+{
+    Right,
+    Bottom,
+}
+
+/// <summary>Device-independent pixels. The bounds are the normal (not maximized) ones.</summary>
+/// <param name="CodePaneWidth">The code pane's width on the right.</param>
+/// <param name="CodePaneHeight">The code pane's height below the Inspector.</param>
+public sealed record WindowLayout(
+    double Left, double Top, double Width, double Height, bool Maximized, double LeftPaneWidth, double CodePaneWidth, double CodePaneHeight)
+{
+    private const double TitleBarHeight = 32;
+    private const double VisibleTitleWidth = 100;
+    private const double Slack = 8;
+
+    /// <summary>
+    /// The layout to restore on a desktop with the given bounds (the virtual screen): no larger than the desktop, and
+    /// centered on it when the title bar would not show, e.g. after a monitor was disconnected. Null for bounds that make no sense.
+    /// </summary>
+    public WindowLayout? FitTo(double left, double top, double width, double height)
+    {
+        if (!(double.IsFinite(Left) && double.IsFinite(Top) && Width > 0 && Height > 0 && double.IsFinite(Width) && double.IsFinite(Height)))
+        {
+            return null;
+        }
+
+        var fitted = this with { Width = Math.Min(Width, width), Height = Math.Min(Height, height) };
+        var titleShows = Top >= top - Slack && Top + TitleBarHeight <= top + height
+            && Left + fitted.Width >= left + VisibleTitleWidth && Left <= left + width - VisibleTitleWidth;
+        return titleShows ? fitted : fitted with { Left = left + ((width - fitted.Width) / 2), Top = top + ((height - fitted.Height) / 2) };
+    }
+}
+
+/// <summary>
+/// Reads an enum by name and falls back to its default for a name it does not know, so a value written by a newer version
+/// (the schema only grows) never makes settings.json unreadable.
+/// </summary>
+internal sealed class LenientEnumConverter<T> : JsonConverter<T>
+    where T : struct, Enum
+{
+    public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.String && Enum.TryParse<T>(reader.GetString(), ignoreCase: true, out var value) && Enum.IsDefined(value))
+        {
+            return value;
+        }
+
+        reader.Skip();
+        return default;
+    }
+
+    public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        writer.WriteStringValue(value.ToString());
+    }
 }
 
 /// <summary>
@@ -38,6 +154,7 @@ public sealed partial class SettingsStore
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new LenientEnumConverter<ThemeChoice>(), new LenientEnumConverter<CodePanePosition>() },
     };
 
     private readonly string _path;
@@ -55,19 +172,24 @@ public sealed partial class SettingsStore
 
     public AppSettings Current { get; private set; }
 
+    /// <summary>Settings changed (raised after they are saved, on the thread that changed them): the new settings.</summary>
+    public event EventHandler<AppSettings>? Changed;
+
     public AppSettings Update(Func<AppSettings, AppSettings> change)
     {
         ArgumentNullException.ThrowIfNull(change);
+        AppSettings updated;
         lock (_gate)
         {
-            Current = change(Current) with { SchemaVersion = AppSettings.CurrentSchemaVersion };
+            updated = Current = change(Current) with { SchemaVersion = AppSettings.CurrentSchemaVersion };
             if (!_readOnly)
             {
                 Save(Current);
             }
-
-            return Current;
         }
+
+        Changed?.Invoke(this, updated);
+        return updated;
     }
 
     private AppSettings Load()

@@ -1,0 +1,6 @@
+{{~ if row ~}}
+new {{ simple_name profile.classes.gridSteps }}(winDriver).clickCell({{ row }}, {{ column }});
+new Actions(winDriver).doubleClick().perform();
+{{~ else ~}}
+new Actions(winDriver).doubleClick({{ target }}).perform();
+{{~ end ~}}

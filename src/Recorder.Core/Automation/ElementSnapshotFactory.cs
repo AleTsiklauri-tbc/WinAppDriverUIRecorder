@@ -20,6 +20,10 @@ internal sealed record CapturedElement(AutomationElement Element, ElementSnapsho
 /// </summary>
 internal sealed class ElementSnapshotFactory
 {
+    // Menu bars, tool strips and drop-down menus answer a hit test with the strip itself, never the item (F-25).
+    private static readonly HashSet<string> Strips = new(StringComparer.Ordinal) { "MenuBar", "Menu", "ToolBar" };
+    private const int MaxStripDepth = 3;
+
     private readonly UIA3Automation _automation;
     private readonly IValueReader _valueReader;
     private readonly TimeProvider _time;
@@ -27,7 +31,10 @@ internal sealed class ElementSnapshotFactory
     private readonly CacheRequest _elementRequest;
     private readonly CacheRequest _ancestorRequest;
     private readonly CacheRequest _siblingsRequest;
+    private readonly CacheRequest _processRequest;
     private readonly PatternId[] _patterns;
+    private readonly PropertyId _gridRow;
+    private readonly PropertyId _gridColumn;
 
     public ElementSnapshotFactory(UIA3Automation automation, IValueReader valueReader, TimeProvider time)
     {
@@ -36,15 +43,18 @@ internal sealed class ElementSnapshotFactory
         _time = time;
         _rawWalker = automation.TreeWalkerFactory.GetRawViewWalker();
         _patterns = automation.PatternLibrary.AllForCurrentFramework;
+        _gridRow = automation.PropertyLibrary.GridItem.Row;
+        _gridColumn = automation.PropertyLibrary.GridItem.Column;
 
         var p = automation.PropertyLibrary.Element;
         PropertyId[] common = NonNull(p.ControlType, p.AutomationId, p.Name, p.ClassName, p.FrameworkId, p.BoundingRectangle, p.NativeWindowHandle, p.RuntimeId, p.ProcessId);
         _ancestorRequest = Request(common);
         _siblingsRequest = Request(NonNull(p.ControlType, p.Name, p.BoundingRectangle, p.IsOffscreen));
         _siblingsRequest.TreeScope = TreeScope.Children;
+        _processRequest = Request(NonNull(p.ProcessId));
 
         // ValuePattern.Value is deliberately not cached: it would be read even for password fields.
-        _elementRequest = Request([.. common, .. NonNull(p.IsPassword, p.IsEnabled, p.IsOffscreen, p.LabeledBy), .. NonNull([.. _patterns.Select(x => x.AvailabilityProperty)])]);
+        _elementRequest = Request([.. common, .. NonNull(p.IsPassword, p.IsEnabled, p.IsOffscreen, p.LabeledBy, _gridRow, _gridColumn), .. NonNull([.. _patterns.Select(x => x.AvailabilityProperty)])]);
     }
 
     /// <summary>The element under a screen point; null when there is none or it belongs to <paramref name="ignoredProcessId"/>.</summary>
@@ -61,7 +71,7 @@ internal sealed class ElementSnapshotFactory
             }
         }
 
-        return Build(element, findLabel, cancellationToken);
+        return Build(ItemInStrip(element, point, cancellationToken), findLabel, cancellationToken);
     }
 
     /// <summary>Reads a previously seen element again (for example an ancestor the user clicked); null if it is gone.</summary>
@@ -74,6 +84,18 @@ internal sealed class ElementSnapshotFactory
         }
 
         return updated is null ? null : Build(updated, findLabel: true, cancellationToken);
+    }
+
+    /// <summary>The element that received keyboard focus, if <paramref name="accept"/> takes its process; otherwise null.</summary>
+    public CapturedElement? Focused(AutomationElement element, Func<int, bool> accept, CancellationToken cancellationToken)
+    {
+        int processId;
+        using (_processRequest.Activate())
+        {
+            processId = element.FrameworkAutomationElement.GetUpdatedCache()?.Properties.ProcessId.ValueOrDefault ?? 0;
+        }
+
+        return processId != 0 && accept(processId) ? Refresh(element, cancellationToken) : null;
     }
 
     /// <summary>Raw-view ancestors, nearest first, excluding the desktop, each with its key properties cached.</summary>
@@ -101,13 +123,49 @@ internal sealed class ElementSnapshotFactory
     /// <summary>Activates the ancestor cache request so cached ancestor properties can be read.</summary>
     public IDisposable ReadAncestorCache() => _ancestorRequest.Activate();
 
+    // The item of a menu or tool strip under the point is the strip's child whose bounds contain it (F-25).
+    private AutomationElement ItemInStrip(AutomationElement element, PixelPoint point, CancellationToken cancellationToken)
+    {
+        var current = element;
+        for (var depth = 0; depth < MaxStripDepth; depth++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using (_siblingsRequest.Activate())
+            {
+                if (!IsStrip(current))
+                {
+                    break;
+                }
+
+                var item = current.FrameworkAutomationElement.GetUpdatedCache()?.CachedChildren
+                    .FirstOrDefault(child => !child.Properties.IsOffscreen.ValueOrDefault && ToPixels(child.Properties.BoundingRectangle.ValueOrDefault).Contains(point));
+                if (item is null)
+                {
+                    break;
+                }
+
+                current = item;
+            }
+
+            using (_elementRequest.Activate())
+            {
+                current = current.FrameworkAutomationElement.GetUpdatedCache() ?? current;
+            }
+        }
+
+        return current;
+    }
+
+    // Called with a cache request active whose properties include ControlType.
+    private static bool IsStrip(AutomationElement element) => Strips.Contains(ControlTypeNames.Of(element.Properties.ControlType.ValueOrDefault));
+
     private CapturedElement Build(AutomationElement element, bool findLabel, CancellationToken cancellationToken)
     {
         string controlType;
         string? automationId, name, className, frameworkId;
-        bool isPassword, isEnabled, isOffscreen, hasValuePattern;
+        bool isPassword, isEnabled, isOffscreen, hasValuePattern, isGridItem;
         PixelRect bounds;
-        int processId;
+        int processId, gridRow = 0, gridColumn = 0;
         nint handle;
         int[] runtimeId;
         AutomationElement? labeledBy;
@@ -115,6 +173,7 @@ internal sealed class ElementSnapshotFactory
         using (_elementRequest.Activate())
         {
             var props = element.Properties;
+            var framework = element.FrameworkAutomationElement;
             controlType = ControlTypeNames.Of(props.ControlType.ValueOrDefault);
             automationId = props.AutomationId.ValueOrDefault;
             name = props.Name.ValueOrDefault;
@@ -130,11 +189,14 @@ internal sealed class ElementSnapshotFactory
             labeledBy = props.LabeledBy.ValueOrDefault;
             patterns = _patterns
                 .Where(pattern => pattern.AvailabilityProperty is { } availability
-                    && element.FrameworkAutomationElement.TryGetPropertyValue<bool>(availability, out var available)
+                    && framework.TryGetPropertyValue<bool>(availability, out var available)
                     && available)
                 .Select(pattern => pattern.Name)
                 .ToList();
             hasValuePattern = patterns.Contains(_automation.PatternLibrary.ValuePattern.Name);
+            isGridItem = patterns.Contains(_automation.PatternLibrary.GridItemPattern.Name)
+                && framework.TryGetPropertyValue(_gridRow, out gridRow)
+                && framework.TryGetPropertyValue(_gridColumn, out gridColumn);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -159,11 +221,18 @@ internal sealed class ElementSnapshotFactory
             labelText = NearbyLabel(ancestorElements[0], bounds);
         }
 
+        var cell = isGridItem ? new Model.GridCell(gridRow, gridColumn, ColumnHeaderOf(element)) : null;
         var snapshot = new ElementSnapshot(
             controlType, automationId, name, className, frameworkId, isPassword, isEnabled, isOffscreen, bounds, processId, handle,
-            window, ancestors, patterns, value, labelText, runtimeId, _time.GetLocalNow(), host, isDetachedPopup);
+            window, ancestors, patterns, value, labelText, runtimeId, _time.GetLocalNow(), host, isDetachedPopup, cell);
         return new CapturedElement(element, snapshot, ancestorElements);
     }
+
+    // The header of a grid cell's column (TableItem pattern): language-neutral, unlike the cell's generated Name (F-27).
+    private static string? ColumnHeaderOf(AutomationElement cell) =>
+        cell.Patterns.TableItem.PatternOrDefault?.ColumnHeaderItems.ValueOrDefault is { Length: > 0 } headers
+            ? headers[0].Properties.Name.ValueOrDefault
+            : null;
 
     // The Win32 top-level window around the element. An owned dialog or menu is a separate top-level window although
     // UI Automation nests it under its owner (F-7); an unowned pop-up is out of reach of a window session (F-23).
@@ -215,13 +284,13 @@ internal sealed class ElementSnapshotFactory
             props.RuntimeId.ValueOrDefault ?? []);
     }
 
-    private static PixelRect ToPixels(Rectangle rectangle) =>
+    internal static PixelRect ToPixels(Rectangle rectangle) =>
         rectangle.IsEmpty ? default : new PixelRect(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
 
     // FlaUI exposes properties a framework does not support as null.
-    private static PropertyId[] NonNull(params PropertyId?[] properties) => [.. properties.OfType<PropertyId>()];
+    internal static PropertyId[] NonNull(params PropertyId?[] properties) => [.. properties.OfType<PropertyId>()];
 
-    private static CacheRequest Request(IEnumerable<PropertyId> properties)
+    internal static CacheRequest Request(IEnumerable<PropertyId> properties)
     {
         var request = new CacheRequest
         {

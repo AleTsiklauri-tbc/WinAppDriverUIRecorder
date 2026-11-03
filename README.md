@@ -5,12 +5,33 @@ WinForms Recorder is a locator inspector and test recorder for .NET Framework Wi
 - Hover a control and press one hotkey. You get the most stable locator, whether it is unique, and a ready-to-paste Java line.
 - Record a flow. You get Page, Steps and Test classes in the style of your own Java framework.
 
-It replaces Microsoft's WinAppDriver UI Recorder. The original is kept unmodified in [legacy/UIRecorder](legacy/UIRecorder).
+It replaces Microsoft's WinAppDriver UI Recorder, kept unmodified in [legacy/UIRecorder](legacy/UIRecorder). Everything
+stays on your PC: no telemetry, no update checks, and password fields are never read.
 
-> **Status: Phase 2 (locator engine).** Choose the app to automate, hover a control and press **Ctrl+Shift+X**,
-> or use **Pick** and click it. The Inspector shows the best locator, whether it is unique, why it was chosen, the other
-> locators, and the Java line to paste into a page class. **Verify with WinAppDriver** asks a running WinAppDriver for
-> the same counts. Recording and full code generation arrive in Phases 3–4; their toolbar buttons are visible but disabled.
+<!-- The screenshots show the published exe and the SampleApp, in the light theme. Take them from the SampleApp only,
+     never from LMS: its windows show customer names and client numbers. -->
+![The main window: the recorded steps on the left, the Inspector with the best locator in the middle, the generated Java on the right](docs/images/main-window.png)
+
+## Quick start
+
+1. **Start it.** Copy `WinFormsRecorder.exe` to any folder and run it: no installation, no admin rights, no .NET needed.
+2. **Choose the app.** Start the app you automate, click **Choose app** and pick its window.
+3. **Capture or record.** Hover a control and press **Ctrl+Shift+X**: the Inspector shows its best locator, whether it is
+   unique, and the Java line to paste. Or press **F9**, use the app as usual and press **F9** again: the code pane shows
+   the Page, Steps and Test classes for what you did.
+
+![Recording: the mini-bar stays on top of the app with the time, the step count and the last step](docs/images/recording.png)
+
+![The code pane, here with the Steps class of the recorded flow, ready to copy, export or merge into your project](docs/images/code.png)
+
+**F1** lists every shortcut. The [user guide](docs/USER_GUIDE.md) explains the rest on one page, and
+[docs/TEMPLATES.md](docs/TEMPLATES.md) how to change the generated code.
+
+The exe is built from this repository with `./build.ps1 publish` (below), which writes
+`artifacts\publish\win-x64\WinFormsRecorder.exe`.
+
+**Status.** Version 0.7.0: all six phases of the spec are done. Still to be checked: LMS's own DevExpress controls, and two
+monitors at different scales ([docs/HANDOFF.md](docs/HANDOFF.md)).
 
 ## Build from source
 
@@ -35,17 +56,29 @@ New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Microsoft\dotnet" | Out-N
 tar -xf "$env:TEMP\dotnet-sdk.zip" -C "$env:LOCALAPPDATA\Microsoft\dotnet"
 ```
 
-**Build, test, run.** [build.ps1](build.ps1) finds the SDK and opts out of dotnet CLI telemetry.
+**Build, test, run, publish.** [build.ps1](build.ps1) finds the SDK and opts out of dotnet CLI telemetry.
 
 ```powershell
 ./build.ps1          # build; src/ treats every warning as an error
 ./build.ps1 test     # unit + integration tests; integration tests open the sample app and the recorder briefly
 ./build.ps1 run      # start WinForms Recorder
+./build.ps1 publish  # the self-contained exe: artifacts\publish\win-x64\WinFormsRecorder.exe
 ```
 
-Some integration tests use the real mouse and keyboard. `./build.ps1 test` runs them first, for about a minute (they put
-the cursor back, and one borrows the clipboard and restores its text). While they run, the session must be unlocked and
-the remote-desktop window not minimized; don't touch the mouse. Leave them out while you work:
+`./build.ps1 publish` takes about 2.5 minutes and makes one 77 MB exe for Windows 10/11 x64 with .NET and WPF inside, so it
+runs where .NET isn't installed. The first publish downloads the .NET runtime packs (86 MB) into the NuGet cache. On its
+first start the exe unpacks WPF's native DLLs (8 MB) to `%TEMP%\.net\WinFormsRecorder`; where a company blocks programs in
+`%TEMP%`, set the environment variable `DOTNET_BUNDLE_EXTRACT_BASE_DIR` to an allowed folder. To run the integration tests
+against the published exe instead of the build output:
+
+```powershell
+./build.ps1 test -Published
+```
+
+Some integration tests use the real mouse and keyboard. `./build.ps1 test` runs them first, for about a minute and a half
+(they put the cursor back, type into the SampleApp, use the Save dialog, and one borrows the clipboard and restores its text).
+While they run, the session must be unlocked and the remote-desktop window not minimized; don't touch the mouse or keyboard.
+Leave them out while you work:
 
 ```powershell
 ./build.ps1 test -NoInput
@@ -60,41 +93,48 @@ that one open and don't click it, or the run fails:
 ./build.ps1 test -WinAppDriverUrl http://127.0.0.1:4727
 ```
 
-## Using it (Phase 2)
+With two monitors, `WindowPlacementTests` close the recorder on each one and check that it opens there again (with one
+monitor they are skipped), and `-Monitor 2` runs the tests with the SampleApp on the second monitor (1 is the main display,
+the others follow from left to right). Spec 14 asks for one run per monitor, with one of them at 150 %:
 
-| To | Do |
-|---|---|
-| Choose the app | Click **Choose app** and pick a window. The recorder remembers the app and re-attaches when it restarts. |
-| Capture a control | Hover it and press **Ctrl+Shift+X**. With no app chosen yet, this also chooses the app under the cursor. |
-| Pick a control | Click **Pick** and hover: the outline turns green (unique, stable), amber (unique but text- or position-based), red (no unique locator) or dashed blue (already captured). Click to capture; the click goes to the recorder, not the app. **Esc** cancels. |
-| Get the locator | The Inspector's card shows the best locator, "1 match in window ✓" or "3 matches ✗", and the Java line, e.g. `public WebElement getAmountInput(){return winDriver.findElementByAccessibilityId("txtAmount");}`. **Copy Java line** or **Ctrl+C** copies it. |
-| Use another locator | Pick one under **Other locators**; the card, the Java line and the Elements tick follow. |
-| See what a locator finds | **Highlight matches** outlines every match on screen for 1.5 s. |
-| Check with WinAppDriver | Start `WinAppDriver.exe`, click **Verify with WinAppDriver**. The first time, type your address (LMSAutomationDemo uses `http://127.0.0.1:4727`) and click Verify again; it is remembered. |
-| Rename the variable | Edit the name at the top of the Inspector, or select the element in Elements and press **F2**. |
-| Find a captured control | **Ctrl+F** filters the Elements list. |
-| Change the shortcut | Edit `captureHotkey` in `%APPDATA%\WinFormsRecorder\settings.json` (a Settings page arrives in Phase 5). |
+```powershell
+./build.ps1 test -Monitor 2
+```
+
+The tests marked `[Trait("Requires", "JDK")]` compile the generated Java with javac against the real Appium java-client
+7.6.0 jars. They are skipped without a JDK 17 or the jars; see [tests/JavaCompileCheck/README.md](tests/JavaCompileCheck/README.md).
 
 ## Where things live
 
 | Path | What |
 |---|---|
 | `src/Recorder.Core` | All logic, no WPF |
-| `src/Recorder.App` | WPF app (`WinFormsRecorder.exe`) |
-| `tests/` | Unit tests, FlaUI integration tests, and `Recorder.SampleApp`, a .NET Framework 4.8 app imitating LMS |
+| `src/Recorder.App` | WPF app (`WinFormsRecorder.exe`); the publish profile is `Properties/PublishProfiles/win-x64.pubxml` |
+| `src/Recorder.Profiles` | The built-in code profiles: `profile.json` and Scriban templates |
+| `tests/` | Unit tests, FlaUI integration tests, `Recorder.SampleApp` (a .NET Framework 4.8 app imitating LMS) and `JavaCompileCheck` |
+| `docs/USER_GUIDE.md` | Using the recorder, on one page |
+| `docs/TEMPLATES.md` | How to change the generated code: profiles, the template model, examples |
 | `docs/ARCHITECTURE.md` | Design, legacy → new mapping, decisions and **Findings** (verified UIA facts) |
-| `docs/HANDOFF.md` | Where the work stands, what comes next, and how to set up another PC |
+| `docs/HANDOFF.md` | Where the work stands, what is still open, and how to set up another PC |
 | `docs/SPEC.txt` | The original specification, verbatim |
 | `AGENTS.md` | Rules and commands for AI coding assistants |
 | `docs/target-style/` | Real Page/Steps/Test files the generated Java must match |
 | `eng/list-licenses.ps1` | License inventory for [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
+| `artifacts/publish/win-x64/` | The published exe (not in git) |
 
 ## Privacy
 
 - No telemetry, update checks or crash reporters. Tests enforce this, including transitive packages.
-- Logs stay on this machine: `%LOCALAPPDATA%\WinFormsRecorder\logs`, kept for 7 days.
-- Password fields are never read, and printable keystrokes are never recorded (Phase 3).
+- Logs stay on this machine: `%LOCALAPPDATA%\WinFormsRecorder\logs`, kept for 7 days. "Detailed logs" adds timings and
+  statuses, never names, values or titles.
+- Password fields are never read, and printable keystrokes are never recorded: only Enter, Tab, Esc, F1–F12, Delete, the arrows
+  and Ctrl or Alt shortcuts, and in a password field only Enter and Tab.
+- Recordings never store element values or window titles; logs never hold typed values. A dialog without an AutomationId
+  is kept as "Window 1", "Window 2"… in the file, and its controls find it again when you capture them after opening.
+- Generated code never names a class, variable or log line after a window title, and never contains a password.
 
 ## License notices
 
-Third-party components and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Third-party components and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The published
+exe contains the .NET runtime and the packages listed there as shipped: when you hand the exe to someone, hand them that
+file too.

@@ -1,6 +1,7 @@
 # Third-party notices
 
-WinForms Recorder uses the third-party material below. All of it is under MIT, Apache-2.0 or BSD licenses.
+WinForms Recorder uses the third-party material below: ideas from the WinAppDriver UI Recorder, NuGet packages (all
+under MIT, Apache-2.0 or BSD licenses) and, inside the published exe, .NET itself (MIT).
 
 ## WinAppDriver UI Recorder (MIT)
 
@@ -42,6 +43,43 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## .NET 10 (inside the published exe)
+
+`./build.ps1 publish` puts the .NET 10.0.14 runtime and WPF (`Microsoft.NETCore.App` and `Microsoft.WindowsDesktop.App`)
+into `WinFormsRecorder.exe`, so that it runs where .NET isn't installed. Both are under this license:
+
+```text
+The MIT License (MIT)
+
+Copyright (c) .NET Foundation and Contributors
+
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+The runtime contains third-party code of its own under permissive licenses (MIT, BSD, Apache-2.0, zlib, Unicode and
+others). They are listed in `THIRD-PARTY-NOTICES.TXT` of the `Microsoft.NETCore.App.Runtime.win-x64` 10.0.14 package
+(`%USERPROFILE%\.nuget\packages\microsoft.netcore.app.runtime.win-x64\10.0.14\` after a publish) and in the
+[dotnet/runtime](https://github.com/dotnet/runtime) repository. The ReadyToRun compiler (`Microsoft.NETCore.App.Crossgen2.win-x64`,
+MIT) only builds the exe and is not part of it.
+
 ## NuGet packages
 
 Generated with `./eng/list-licenses.ps1 -Markdown` (direct and transitive). Run it again after any dependency
@@ -53,7 +91,10 @@ Packages used by `Recorder.App` and `Recorder.Core`:
 
 | Package | Version | License | Used by |
 |---|---|---|---|
+| AvalonEdit | 6.3.1.120 | MIT | Recorder.App (the code view) |
 | CommunityToolkit.Mvvm | 8.4.2 | MIT | Recorder.App |
+| DiffPlex | 1.9.0 | Apache-2.0 | Recorder.App (the merge preview) |
+| DiffPlex.Wpf | 1.9.1 | Apache-2.0 | Recorder.App (the merge preview) |
 | FlaUI.Core | 5.0.0 | MIT (license file) | Recorder.App, Recorder.Core |
 | FlaUI.UIA3 | 5.0.0 | MIT (license file) | Recorder.App, Recorder.Core |
 | Interop.UIAutomationClient | 10.19041.0 | MIT (license file) | Recorder.App, Recorder.Core |
@@ -85,6 +126,7 @@ Packages used by `Recorder.App` and `Recorder.Core`:
 | Microsoft.Extensions.Options.ConfigurationExtensions | 10.0.14 | MIT | Recorder.App |
 | Microsoft.Extensions.Primitives | 10.0.14 | MIT | Recorder.App |
 | Microsoft.Win32.SystemEvents | 8.0.0 | MIT | Recorder.Core |
+| Scriban | 7.5.3 | BSD-2-Clause | Recorder.Core (code templates) |
 | Serilog | 4.4.0 | Apache-2.0 | Recorder.App |
 | Serilog.Extensions.Hosting | 10.0.0 | Apache-2.0 | Recorder.App |
 | Serilog.Extensions.Logging | 10.0.0 | Apache-2.0 | Recorder.App |
@@ -102,14 +144,24 @@ Packages used by `Recorder.App` and `Recorder.Core`:
 The `Microsoft.Extensions.Logging.*` provider packages come in through `Microsoft.Extensions.Hosting`. The recorder
 does not register any of them; its only log destination is a local Serilog file. The `System.*` and `Microsoft.Win32.SystemEvents` packages come in through FlaUI 5, the UI Automation library used for capture.
 
+Not used: **Verify** (snapshot testing). Since version 33 its binaries come with an "Open Source Maintenance Fee"
+agreement instead of a plain MIT license, so the snapshot tests use a small helper of their own (ARCHITECTURE D-62).
+
+The Java compile check (`tests/JavaCompileCheck`, never shipped) uses Appium java-client 7.6.0 and Selenium 3.141.59
+(Apache-2.0), Guava 25.0 (Apache-2.0) and TestNG 7.11.0 (Apache-2.0) from Maven Central; they are not part of this
+repository.
+
 ### All packages, including test-only
 
 `Recorder.Core.Tests`, `Recorder.IntegrationTests` and `Recorder.SampleApp` are never shipped.
 
 | Package | Version | License | Used by |
 |---|---|---|---|
+| AvalonEdit | 6.3.1.120 | MIT | Recorder.App |
 | CommunityToolkit.Mvvm | 8.4.2 | MIT | Recorder.App |
 | DiffEngine | 11.3.0 | MIT | Recorder.Core.Tests, Recorder.IntegrationTests |
+| DiffPlex | 1.9.0 | Apache-2.0 | Recorder.App |
+| DiffPlex.Wpf | 1.9.1 | Apache-2.0 | Recorder.App |
 | EmptyFiles | 4.4.0 | MIT | Recorder.Core.Tests, Recorder.IntegrationTests |
 | FlaUI.Core | 5.0.0 | MIT (license file) | Recorder.App, Recorder.Core, Recorder.Core.Tests, Recorder.IntegrationTests |
 | FlaUI.UIA3 | 5.0.0 | MIT (license file) | Recorder.App, Recorder.Core, Recorder.Core.Tests, Recorder.IntegrationTests |
@@ -149,6 +201,7 @@ does not register any of them; its only log destination is a local Serilog file.
 | Microsoft.Web.WebView2 | 1.0.4314.35 | BSD-3-Clause (license file) | Recorder.SampleApp |
 | Microsoft.Win32.Registry | 5.0.0 | MIT | Recorder.Core.Tests, Recorder.IntegrationTests |
 | Microsoft.Win32.SystemEvents | 8.0.0 | MIT | Recorder.Core, Recorder.Core.Tests, Recorder.IntegrationTests |
+| Scriban | 7.5.3 | BSD-2-Clause | Recorder.App, Recorder.Core, Recorder.Core.Tests, Recorder.IntegrationTests |
 | Serilog | 4.4.0 | Apache-2.0 | Recorder.App |
 | Serilog.Extensions.Hosting | 10.0.0 | Apache-2.0 | Recorder.App |
 | Serilog.Extensions.Logging | 10.0.0 | Apache-2.0 | Recorder.App |

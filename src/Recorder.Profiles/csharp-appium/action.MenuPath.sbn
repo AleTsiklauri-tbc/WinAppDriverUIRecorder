@@ -1,0 +1,4 @@
+{{ target }}.Click();
+{{~ for item in menu_items ~}}
+{{ item }}.Click();
+{{~ end ~}}

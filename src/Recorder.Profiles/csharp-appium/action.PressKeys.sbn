@@ -1,0 +1,5 @@
+{{~ if element ~}}
+{{ target }}.SendKeys({{ keys }});
+{{~ else ~}}
+new Actions(_driver).SendKeys({{ keys }}).Perform();
+{{~ end ~}}

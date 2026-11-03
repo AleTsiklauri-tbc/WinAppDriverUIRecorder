@@ -17,6 +17,10 @@ public sealed record AncestorInfo(
     nint NativeWindowHandle,
     IReadOnlyList<int> RuntimeId);
 
+/// <summary>Where a grid cell sits (UIA GridItem and TableItem). Row and column are 0-based, as in the grid (F-6, D-12).</summary>
+/// <param name="ColumnHeader">The column's header text; null or empty for a column without one, like the check box column in LMS grids.</param>
+public sealed record GridCell(int Row, int Column, string? ColumnHeader);
+
 /// <summary>
 /// Everything known about one UI element at capture time, read in a few cross-process calls.
 /// </summary>
@@ -32,6 +36,7 @@ public sealed record AncestorInfo(
 /// The host window is neither the top-level window nor owned by it, like a ComboBox's open drop-down list. A WinAppDriver
 /// session on the app's window cannot see such elements (F-23).
 /// </param>
+/// <param name="Cell">Set for a grid cell: its row, column and column header.</param>
 public sealed record ElementSnapshot(
     string ControlType,
     string? AutomationId,
@@ -52,7 +57,8 @@ public sealed record ElementSnapshot(
     IReadOnlyList<int> RuntimeIdForSessionOnly,
     DateTimeOffset CapturedAt,
     WindowInfo? HostWindow = null,
-    bool IsDetachedPopup = false)
+    bool IsDetachedPopup = false,
+    GridCell? Cell = null)
 {
     /// <summary>Stable key for the element during this session (the runtime id as text).</summary>
     public string SessionKey => RuntimeKey.Of(RuntimeIdForSessionOnly);

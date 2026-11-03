@@ -32,21 +32,17 @@ public sealed partial class CaptureCoordinator : IAsyncDisposable
     private readonly ILogger<CaptureCoordinator> _logger;
     private readonly Dispatcher _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
     private readonly DispatcherTimer _flashTimer;
-    private readonly HotkeyGesture _captureGesture;
+    private readonly Shortcuts _shortcuts;
     private PickSession? _pick;
     private bool _disposed;
 
     public CaptureCoordinator(
         IUiaService uia, ILocatorService locators, HoverTracker hover, IMouseHook hook, TargetTracker target, ElementCatalog catalog, HotkeyService hotkeys,
-        ToastService toasts, BannerService banners, ElementLocating locating, Overlays overlays, SettingsStore settings, ILogger<CaptureCoordinator> logger)
+        ToastService toasts, BannerService banners, ElementLocating locating, Overlays overlays, Shortcuts shortcuts, ILogger<CaptureCoordinator> logger)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         (_uia, _hover, _hook, _target, _catalog, _hotkeys, _toasts, _banners, _logger) = (uia, hover, hook, target, catalog, hotkeys, toasts, banners, logger);
-        (_locating, _overlays) = (locating, overlays);
+        (_locating, _overlays, _shortcuts) = (locating, overlays, shortcuts);
         _highlighter = new HoverHighlighter(locators, catalog, () => overlays.Hover);
-        _captureGesture = HotkeyGesture.TryParse(settings.Current.CaptureHotkey, out var gesture)
-            ? gesture
-            : HotkeyGesture.TryParse(new AppSettings().CaptureHotkey, out var fallback) ? fallback : throw new InvalidOperationException("Invalid default shortcut.");
         _flashTimer = new DispatcherTimer(FlashDuration, DispatcherPriority.Normal, (_, _) => EndFlash(), _dispatcher) { IsEnabled = false };
     }
 
@@ -60,8 +56,6 @@ public sealed partial class CaptureCoordinator : IAsyncDisposable
 
     public bool IsPicking => _pick is not null;
 
-    public string CaptureGestureText => _captureGesture.ToString();
-
     private HighlightOverlay Overlay => _overlays.Hover;
 
     public void Initialize(Window mainWindow)
@@ -69,10 +63,14 @@ public sealed partial class CaptureCoordinator : IAsyncDisposable
         _hotkeys.Attach(mainWindow);
         _hotkeys.Pressed += OnHotkey;
         _hover.Updated += OnHoverUpdated;
-        if (!_hotkeys.Register(HotkeyId.Capture, _captureGesture))
+        _shortcuts.Register(ShortcutId.Capture);
+        _shortcuts.Changed += (_, id) =>
         {
-            _banners.Show("hotkey", Text.Format(Strings.Banner_HotkeyTaken, _captureGesture), isWarning: true);
-        }
+            if (id == ShortcutId.Capture)
+            {
+                _shortcuts.Register(id);
+            }
+        };
     }
 
     public void TogglePick()
@@ -122,7 +120,7 @@ public sealed partial class CaptureCoordinator : IAsyncDisposable
         if (!session.Start())
         {
             session.Dispose();
-            _banners.Show("hook", Text.Format(Strings.Banner_HookBlocked, _captureGesture), isWarning: true);
+            _banners.Show("hook", Text.Format(Strings.Banner_HookBlocked, _shortcuts.Gesture(ShortcutId.Capture)), isWarning: true);
             return;
         }
 
@@ -185,7 +183,7 @@ public sealed partial class CaptureCoordinator : IAsyncDisposable
             : WindowEnumerator.GetAppWindows().FirstOrDefault(w => w.ProcessId == processId);
         if (window is null)
         {
-            _toasts.Show(Text.Format(Strings.Toast_NoAppUnderCursor, _captureGesture));
+            _toasts.Show(Text.Format(Strings.Toast_NoAppUnderCursor, _shortcuts.Gesture(ShortcutId.Capture)));
             return false;
         }
 

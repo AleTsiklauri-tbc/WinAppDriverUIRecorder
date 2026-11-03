@@ -67,7 +67,7 @@
             </Grid>
 
             <ToggleButton DockPanel.Dock="Left" Margin="0,0,4,0" Padding="10,6" MinHeight="32"
-                          IsChecked="{Binding IsPicking}"
+                          IsChecked="{Binding IsPicking}" IsEnabled="{Binding Recording.IsIdle}"
                           AutomationProperties.Name="{x:Static res:Strings.Toolbar_Pick}"
                           AutomationProperties.AutomationId="Toolbar.Pick">
                 <ToggleButton.Style>
@@ -85,8 +85,9 @@
                     <TextBlock VerticalAlignment="Center" Text="{x:Static res:Strings.Toolbar_Pick}" />
                 </StackPanel>
             </ToggleButton>
-            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
-                    ToolTip="{x:Static res:Strings.Toolbar_Record_Tip}"
+            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding Recording.RecordCommand}"
+                    ToolTip="{Binding [Toolbar_Record_Tip], Source={StaticResource Shortcuts}}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Record}"
                     AutomationProperties.AutomationId="Toolbar.Record">
                 <StackPanel Orientation="Horizontal">
@@ -94,20 +95,23 @@
                     <TextBlock VerticalAlignment="Center" Text="{x:Static res:Strings.Toolbar_Record}" />
                 </StackPanel>
             </Button>
-            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
-                    ToolTip="{x:Static res:Strings.Toolbar_Pause_Tip}"
-                    AutomationProperties.Name="{x:Static res:Strings.Toolbar_Pause}"
+            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding Recording.TogglePauseCommand}"
+                    ToolTip="{Binding Recording.PauseTip}"
+                    AutomationProperties.Name="{Binding Recording.PauseText}"
                     AutomationProperties.AutomationId="Toolbar.Pause">
                 <TextBlock Style="{StaticResource IconTextStyle}" Text="{StaticResource Glyph.Pause}" />
             </Button>
-            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
-                    ToolTip="{x:Static res:Strings.Toolbar_Stop_Tip}"
+            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding Recording.StopCommand}"
+                    ToolTip="{Binding [Toolbar_Stop_Tip], Source={StaticResource Shortcuts}}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Stop}"
                     AutomationProperties.AutomationId="Toolbar.Stop">
                 <TextBlock Style="{StaticResource IconTextStyle}" Text="{StaticResource Glyph.Stop}" />
             </Button>
-            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
-                    ToolTip="{x:Static res:Strings.Toolbar_Assert_Tip}"
+            <Button DockPanel.Dock="Left" Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding Recording.AssertCommand}"
+                    ToolTip="{Binding Recording.AssertTip}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Assert}"
                     AutomationProperties.AutomationId="Toolbar.Assert">
                 <StackPanel Orientation="Horizontal">
@@ -116,35 +120,65 @@
                 </StackPanel>
             </Button>
 
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" Margin="0" IsEnabled="False"
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" Margin="0" Command="{Binding CheatSheet.ToggleCommand}"
                     ToolTip="{x:Static res:Strings.Toolbar_Help}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Help}"
                     AutomationProperties.AutomationId="Toolbar.Help">
                 <TextBlock Style="{StaticResource IconTextStyle}" Text="{StaticResource Glyph.Help}" />
             </Button>
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" Command="{Binding OpenSettingsCommand}"
                     ToolTip="{x:Static res:Strings.Toolbar_Settings}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Settings}"
                     AutomationProperties.AutomationId="Toolbar.Settings">
                 <TextBlock Style="{StaticResource IconTextStyle}" Text="{StaticResource Glyph.Settings}" />
             </Button>
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,12,0" IsEnabled="False"
+            <!-- Export ▾ holds the recording file commands (spec 11.9 Ctrl+S / Ctrl+O) and Export code (Ctrl+E): every class into a folder. -->
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" Margin="0,0,12,0"
+                    Click="OnExportClick"
                     ToolTip="{x:Static res:Strings.Toolbar_Export_Tip}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Export}"
                     AutomationProperties.AutomationId="Toolbar.Export">
+                <Button.ContextMenu>
+                    <ContextMenu AutomationProperties.AutomationId="Toolbar.ExportMenu">
+                        <MenuItem Header="{x:Static res:Strings.Menu_Save}" InputGestureText="Ctrl+S" Command="{Binding SaveCommand}"
+                                  AutomationProperties.AutomationId="Menu.Save" />
+                        <MenuItem Header="{x:Static res:Strings.Menu_SaveAs}" InputGestureText="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"
+                                  AutomationProperties.AutomationId="Menu.SaveAs" />
+                        <MenuItem Header="{x:Static res:Strings.Menu_Open}" InputGestureText="Ctrl+O" Command="{Binding OpenCommand}"
+                                  AutomationProperties.AutomationId="Menu.Open" />
+                        <!-- The recordings saved or opened lately (spec 12); the full path shows as a tooltip. -->
+                        <MenuItem Header="{x:Static res:Strings.Menu_OpenRecent}" ItemsSource="{Binding RecentFiles}" IsEnabled="{Binding HasRecentFiles}"
+                                  AutomationProperties.AutomationId="Menu.OpenRecent">
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                    <Setter Property="Header" Value="{Binding Name}" />
+                                    <Setter Property="ToolTip" Value="{Binding Path}" />
+                                    <Setter Property="Command" Value="{Binding Command}" />
+                                    <Setter Property="CommandParameter" Value="{Binding Path}" />
+                                    <Setter Property="AutomationProperties.AutomationId" Value="{Binding AutomationId}" />
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem Header="{x:Static res:Strings.Menu_ExportCode}" InputGestureText="Ctrl+E" Command="{Binding Code.ExportCommand}"
+                                  AutomationProperties.AutomationId="Menu.ExportCode" />
+                    </ContextMenu>
+                </Button.ContextMenu>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Style="{StaticResource IconTextStyle}" Margin="0,0,6,0" Text="{StaticResource Glyph.Export}" />
                     <TextBlock VerticalAlignment="Center" Text="{x:Static res:Strings.Toolbar_Export}" />
                     <TextBlock Style="{StaticResource IconTextStyle}" Margin="6,0,0,0" FontSize="10" Text="{StaticResource Glyph.ChevronDown}" />
                 </StackPanel>
             </Button>
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding RedoCommand}"
                     ToolTip="{x:Static res:Strings.Toolbar_Redo_Tip}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Redo}"
                     AutomationProperties.AutomationId="Toolbar.Redo">
                 <TextBlock Style="{StaticResource IconTextStyle}" Text="{StaticResource Glyph.Redo}" />
             </Button>
-            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}" IsEnabled="False"
+            <Button DockPanel.Dock="Right" Style="{StaticResource ToolbarButtonStyle}"
+                    Command="{Binding UndoCommand}"
                     ToolTip="{x:Static res:Strings.Toolbar_Undo_Tip}"
                     AutomationProperties.Name="{x:Static res:Strings.Toolbar_Undo}"
                     AutomationProperties.AutomationId="Toolbar.Undo">

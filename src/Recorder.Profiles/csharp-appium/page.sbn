@@ -1,0 +1,18 @@
+using OpenQA.Selenium.Appium.Windows;
+
+namespace {{ profile.package }}
+{
+    public class {{ page.class_name }}
+    {
+        private readonly WindowsDriver<WindowsElement> _driver;
+
+        public {{ page.class_name }}(WindowsDriver<WindowsElement> driver)
+        {
+            _driver = driver;
+        }
+
+{{~ for element in page.elements ~}}
+        {{ include "element" }}
+{{~ end ~}}
+    }
+}

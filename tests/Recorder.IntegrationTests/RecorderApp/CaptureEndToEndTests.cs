@@ -1,3 +1,4 @@
+using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using Recorder.Core.Model;
 using Recorder.IntegrationTests.Infrastructure;
@@ -123,7 +124,8 @@ public sealed class CaptureEndToEndTests : IClassFixture<RecorderWithTargetFixtu
                 continue;
             }
 
-            var under = automation.FromPoint(new System.Drawing.Point(bounds.Center.X, bounds.Center.Y));
+            // Over a menu or tool strip a hit test stops at the strip; the recorder outlines the item under the point (F-25).
+            var under = ItemInStrip(automation.FromPoint(new System.Drawing.Point(bounds.Center.X, bounds.Center.Y)), bounds.Center);
             var underBounds = Desktop.BoundsOf(under);
             if (under.Properties.ProcessId.ValueOrDefault == Sample.Session.ProcessId && !underBounds.IsEmpty)
             {
@@ -162,6 +164,22 @@ public sealed class CaptureEndToEndTests : IClassFixture<RecorderWithTargetFixtu
 
         TestContext.Current.TestOutputHelper?.WriteLine($"Hovered {probes.Count} distinct elements, {failures.Count} without the right outline.");
         failures.ShouldBeEmpty();
+    }
+
+    private static AutomationElement ItemInStrip(AutomationElement element, PixelPoint point)
+    {
+        for (var depth = 0; depth < 3 && element.Properties.ControlType.ValueOrDefault is ControlType.MenuBar or ControlType.Menu or ControlType.ToolBar; depth++)
+        {
+            var item = element.FindAllChildren().FirstOrDefault(child => !child.Properties.IsOffscreen.ValueOrDefault && Desktop.BoundsOf(child).Contains(point));
+            if (item is null)
+            {
+                break;
+            }
+
+            element = item;
+        }
+
+        return element;
     }
 
     /// <summary>Phase 1 acceptance: the recorder stays responsive while the SampleApp is frozen by "Freeze 5 s".</summary>

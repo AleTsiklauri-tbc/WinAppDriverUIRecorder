@@ -81,6 +81,6 @@ public sealed partial class WinAppDriverService : ObservableObject, IDisposable
 
     public void Dispose() => _client.Dispose();
 
-    [LoggerMessage(EventId = 630, Level = LogLevel.Information, Message = "Verify with WinAppDriver: {Outcome}, {Checks} locators")]
+    [LoggerMessage(EventId = 632, Level = LogLevel.Information, Message = "Verify with WinAppDriver: {Outcome}, {Checks} locators")]
     private static partial void LogVerified(ILogger logger, VerificationOutcome outcome, int checks);
 }

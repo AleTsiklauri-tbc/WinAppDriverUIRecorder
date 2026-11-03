@@ -1,0 +1,37 @@
+<Window x:Class="Recorder.App.Views.AssertPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="clr-namespace:Recorder.App.Resources"
+        Title="{Binding Title}"
+        WindowStyle="None" ResizeMode="NoResize" SizeToContent="WidthAndHeight" Topmost="True" ShowInTaskbar="False"
+        FontFamily="{StaticResource UiFontFamily}"
+        Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+        AutomationProperties.AutomationId="AssertPicker">
+    <!-- DataContext: AssertPickerViewModel. Shown next to the cursor in Assert mode (spec 9.6). -->
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
+        <KeyBinding Key="Enter" Command="{Binding ConfirmCommand}" />
+    </Window.InputBindings>
+    <StackPanel Margin="12" MinWidth="240" MaxWidth="460">
+        <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Margin="0,0,0,8" Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+                   AutomationProperties.AutomationId="AssertPicker.Title" />
+        <ListBox x:Name="OptionsList" ItemsSource="{Binding Options}" SelectedItem="{Binding Selected}" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 AutomationProperties.Name="{Binding Title}"
+                 AutomationProperties.AutomationId="AssertPicker.Options">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Margin="4,2" Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+                    <EventSetter Event="MouseDoubleClick" Handler="OnOptionDoubleClick" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
+        <TextBlock Style="{StaticResource CaptionTextStyle}" Margin="0,8,0,0" Text="{x:Static res:Strings.Assert_Hint}" />
+    </StackPanel>
+</Window>

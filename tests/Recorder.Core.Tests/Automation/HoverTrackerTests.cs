@@ -92,6 +92,21 @@ public sealed class HoverTrackerTests
         (await completedWhenShown.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken)).ShouldBe(1);
     }
 
+    [Fact]
+    public async Task The_hover_cache_is_refreshed_by_every_lookup_even_when_nothing_new_is_published()
+    {
+        var uia = new ScriptedUia(UiaResult.Ok(TestSnapshots.Edit()));
+        await using var tracker = new HoverTracker(new RestingCursor(), uia, new WholeScreenIsTarget(), Fast, TimeProvider.System, NullLogger<HoverTracker>.Instance);
+
+        tracker.Start();
+        await WaitUntilAsync(() => tracker.Latest is not null);
+        var first = tracker.Latest!.Timestamp;
+        await WaitUntilAsync(() => tracker.Latest is { } latest && latest.Timestamp > first);
+        await tracker.StopAsync();
+
+        tracker.Latest.ShouldBeNull();
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition)
     {
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
@@ -188,6 +203,11 @@ public sealed class HoverTrackerTests
         public Task<UiaResult<ElementSnapshot>> CaptureAtAsync(PixelPoint point, CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<UiaResult<ElementSnapshot>> RefreshAsync(string sessionKey, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<UiaResult<ElementState>> ReadStateAsync(string sessionKey, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<UiaResult<IAsyncDisposable>> WatchFocusAsync(Func<int, bool> isTargetProcess, Action<ElementSnapshot?> onFocusChanged, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
 
         private static void InterlockedMax(ref int target, int value)
         {

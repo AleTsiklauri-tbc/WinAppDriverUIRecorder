@@ -1,0 +1,1 @@
+_driver.SwitchTo().Window(_driver.WindowHandles[_driver.WindowHandles.Count - 1]);

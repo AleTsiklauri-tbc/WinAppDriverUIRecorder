@@ -1,0 +1,67 @@
+package {{ profile.test_package }};
+
+{{~
+imports = [profile.classes.test, profile.classes.baseTest, profile.classes.log]
+for page in test.steps
+  imports = imports | array.add (profile.steps_package + "." + page.steps_class_name)
+end
+for page in test.pages
+  imports = imports | array.add (profile.package + "." + page.class_name)
+end
+if test.uses.test_data
+  imports = imports | array.add profile.classes.configReader
+end
+if test.uses.assert
+  imports = imports | array.add profile.classes.assert
+end
+if test.uses.keys
+  imports = imports | array.add profile.classes.keys
+end
+if test.uses.actions
+  imports = imports | array.add profile.classes.actions
+end
+if test.uses.grid_steps
+  imports = imports | array.add profile.classes.gridSteps
+end
+if test.uses.utility
+  imports = imports | array.add profile.classes.utility
+end
+for qualified in imports | array.uniq | array.sort
+~}}
+import {{ qualified }};
+{{~ end ~}}
+
+@Test(description = {{ test.description | literal }})
+public class {{ test.class_name }} extends {{ simple_name profile.classes.baseTest }} {
+
+    private static final {{ simple_name profile.classes.log }} log = {{ simple_name profile.classes.log }}.getLogger({{ test.class_name }}.class);
+
+    @Test(priority = 1)
+    public void {{ test.method }}() {
+        log.info({{ test.description | literal }});
+{{~ for block in test.blocks ~}}
+{{~ if block.kind == "chain" ~}}
+{{~ if block.declare_steps ~}}
+        {{ block.page.steps_class_name }} {{ block.page.steps_variable }} = new {{ block.page.steps_class_name }}(winDriver);
+{{~ end ~}}
+{{~ if (array.size block.calls) == 1 ~}}
+        {{ block.page.steps_variable }}.{{ block.calls[0].action.method }}({{ block.calls[0].arguments | array.join ", " }});
+{{~ else ~}}
+        {{ block.page.steps_variable }}
+{{~ for call in block.calls ~}}
+                .{{ call.action.method }}({{ call.arguments | array.join ", " }}){{ if for.last }};{{ end }}
+{{~ end ~}}
+{{~ end ~}}
+{{~ else if block.kind == "statement" ~}}
+{{~ if block.declare_page ~}}
+        {{ block.page.class_name }} {{ block.page.variable }} = new {{ block.page.class_name }}(winDriver);
+{{~ end ~}}
+{{ indent_lines block.body "        " }}
+{{~ else if block.kind == "comment" ~}}
+{{ indent_lines block.body "        " }}
+{{~ else ~}}
+        // Skipped: {{ block.comment }}
+{{~ end ~}}
+{{~ end ~}}
+    }
+}

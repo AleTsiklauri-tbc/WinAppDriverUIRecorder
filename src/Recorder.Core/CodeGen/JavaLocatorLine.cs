@@ -8,7 +8,7 @@ namespace Recorder.Core.CodeGen;
 /// <summary>
 /// One locator as a getter in the style of docs/target-style (decision D-5, java-client 7.6):
 /// <c>public WebElement getAmountInput(){return winDriver.findElementByAccessibilityId("txtAmount");}</c>.
-/// Phase 4's code profiles generalise this to templates.
+/// The app copies the active profile's snippet.sbn instead; this is the reference the Java profile is tested against (D-32).
 /// </summary>
 public static class JavaLocatorLine
 {
