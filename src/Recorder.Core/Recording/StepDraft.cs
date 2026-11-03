@@ -30,6 +30,8 @@ public sealed record StepDraft
 
     public string? ColumnHeader { get; init; }
 
+    public string? CellControlType { get; init; }
+
     public IReadOnlyList<string> MenuItems { get; init; } = [];
 
     public int? Scroll { get; init; }

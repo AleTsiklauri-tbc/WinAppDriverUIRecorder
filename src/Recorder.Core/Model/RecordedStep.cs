@@ -18,7 +18,8 @@ public enum StepWarning
 /// <list type="bullet">
 /// <item>SetText: Text, or TestDataKey for a secret. SelectOption, SelectTab, AssertText, AssertValue: Text. PressKeys: Text is the chord ("Ctrl+S").</item>
 /// <item>SetChecked, AssertEnabled, AssertChecked: State (null when it could not be read).</item>
-/// <item>GridCellClick, and DoubleClick or RightClick on a grid cell: RowIndex and ColumnIndex (0-based, D-12) and ColumnHeader; the target is the grid.</item>
+/// <item>GridCellClick, and DoubleClick or RightClick on a grid cell: RowIndex and ColumnIndex (0-based, D-12), ColumnHeader, and
+/// CellControlType (Edit for a text cell, CheckBox…; null in recordings made before 0.7.1, or for a row header); the target is the grid.</item>
 /// <item>MenuPath: MenuItems from the menu bar (or context menu) down; the target is the first item.</item>
 /// <item>SwitchWindow: the target is the window. Comment: Comment, and Scroll (wheel notches, negative = down) for a recorded scroll.</item>
 /// </list>
@@ -44,6 +45,9 @@ public sealed record RecordedStep
     public int? ColumnIndex { get; init; }
 
     public string? ColumnHeader { get; init; }
+
+    /// <summary>The clicked cell's control type: it decides whether a framework's grid helper can click it (D-83).</summary>
+    public string? CellControlType { get; init; }
 
     public IReadOnlyList<string> MenuItems { get; init; } = [];
 

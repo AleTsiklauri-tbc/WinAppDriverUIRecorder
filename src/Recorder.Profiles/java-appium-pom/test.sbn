@@ -23,6 +23,9 @@ end
 if test.uses.grid_steps
   imports = imports | array.add profile.classes.gridSteps
 end
+if test.uses.by
+  imports = imports | array.add profile.classes.by
+end
 if test.uses.utility
   imports = imports | array.add profile.classes.utility
 end

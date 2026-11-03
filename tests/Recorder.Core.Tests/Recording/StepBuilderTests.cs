@@ -45,6 +45,7 @@ public sealed class StepBuilderTests
         steps[5].Target.ShouldBe(ShowMessage);
         steps[6].Target.ShouldBe(MessageOk);
         (steps[7].Target, steps[7].RowIndex, steps[7].ColumnIndex, steps[7].ColumnHeader).ShouldBe((Grid, 2, 3, "Status"));
+        steps[7].CellControlType.ShouldBe("Edit");
     }
 
     [Fact]
@@ -218,6 +219,7 @@ public sealed class StepBuilderTests
         _list.Kinds.ShouldBe([StepKind.GridCellClick, StepKind.GridCellClick]);
         (_list.Steps[0].RowIndex, _list.Steps[0].ColumnIndex, _list.Steps[0].ColumnHeader).ShouldBe((2, 0, null));
         (_list.Steps[1].RowIndex, _list.Steps[1].ColumnIndex, _list.Steps[1].ColumnHeader).ShouldBe((2, null, null));
+        (_list.Steps[0].CellControlType, _list.Steps[1].CellControlType).ShouldBe(("CheckBox", null));
     }
 
     [Fact]

@@ -22,7 +22,7 @@ internal sealed class ActionFactory(ProfileSettings settings, ProfileModel profi
     private readonly string _language = settings.Language;
 
     /// <summary>Identifies the method a step uses: same key, same method.</summary>
-    public static string Key(RecordedStep step)
+    public string Key(RecordedStep step, ElementCode? element)
     {
         ArgumentNullException.ThrowIfNull(step);
         return step.Kind switch
@@ -30,7 +30,7 @@ internal sealed class ActionFactory(ProfileSettings settings, ProfileModel profi
             StepKind.SetChecked => $"{step.Kind}:{step.Target}:{step.State}",
             StepKind.PressKeys => $"{step.Kind}:{step.Target}:{step.Text}",
             StepKind.MenuPath => $"{step.Kind}:{step.Target}:{string.Join('/', step.MenuItems)}",
-            _ when IsCell(step) => $"{step.Kind}:cell:{step.Target}:{(HasHeader(step) ? "header" : "index")}",
+            _ when IsCell(step) => $"{step.Kind}:cell:{step.Target}:{(HasHeader(step) ? "header" : "index")}:{(UseGridSteps(step, element) ? "helper" : "direct")}",
             _ => $"{step.Kind}:{step.Target}",
         };
     }
@@ -121,6 +121,14 @@ internal sealed class ActionFactory(ProfileSettings settings, ProfileModel profi
 
     private static bool HasHeader(RecordedStep step) => !string.IsNullOrEmpty(step.ColumnHeader);
 
+    // The framework's grid helper clicks only the cells it can find (D-83): GridSteps.clickCell finds a text cell by its header,
+    // in the one grid its GridPage looks up. Any other cell (a check box, a column without a header, another grid) is clicked
+    // inside its own grid.
+    private bool UseGridSteps(RecordedStep step, ElementCode? element) =>
+        IsCell(step) && HasHeader(step) && settings.GridSteps is { } helper
+        && string.Equals(element?.AutomationId, helper.GridAutomationId, StringComparison.Ordinal)
+        && step.CellControlType is { } type && (helper.CellControlTypes ?? []).Contains(type, StringComparer.Ordinal);
+
     private ActionContext Context(RecordedStep step, ElementCode? element, string pageVariable, string? value, string? row, string? column, string? cell)
     {
         var target = element is null ? string.Empty : Access(pageVariable, element);
@@ -128,7 +136,8 @@ internal sealed class ActionFactory(ProfileSettings settings, ProfileModel profi
         var menu = step.Kind == StepKind.MenuPath ? step.MenuItems.Skip(1).Select(MenuItemLocator).ToList() : [];
         var state = step.State is { } s ? (s ? "true" : "false") : null;
         return new ActionContext(
-            step.Kind.ToString(), element, target, value, state, keys, menu, row, column, cell, Describe(step, element), CommentOf(step, element), profile);
+            step.Kind.ToString(), element, target, value, state, keys, menu, row, column, cell, UseGridSteps(step, element), Describe(step, element),
+            CommentOf(step, element), profile);
     }
 
     // The value as code: a literal, or the test-data expression for a secret (D-9).

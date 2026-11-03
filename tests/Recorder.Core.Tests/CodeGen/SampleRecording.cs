@@ -77,9 +77,16 @@ internal sealed class SampleRecording
         var status = r.Add("Text", "lblStatus", "Ready", inLoan, Id("lblStatus"));
         var save = r.Add("Button", "btnSave", "Save", inLoan, Id("btnSave"));
         var clients = r.Add("Window", "frmClients", "Clients - John Example", [], Id("frmClients"));
-        r.Step(StepKind.DoubleClick, r.LoansGrid, row: 0, column: 1, header: "Client");
-        r.Step(StepKind.RightClick, r.LoansGrid, row: 1, column: 0, header: null);
-        r.Step(StepKind.GridCellClick, r.LoansGrid, row: 4, column: 3, header: "Status");
+
+        // dgvLoans: the cells are clicked inside the grid. "Grid" is the grid LMSAutomationDemo's GridSteps works on: its text
+        // cells go through GridSteps, a check box cell does not (D-83).
+        var clientGrid = r.Add("Table", "Grid", "DataGridView", inLoan, Id("Grid"));
+        r.Step(StepKind.DoubleClick, r.LoansGrid, row: 0, column: 1, header: "Client", cellType: "Edit");
+        r.Step(StepKind.RightClick, r.LoansGrid, row: 1, column: 0, header: null, cellType: "CheckBox");
+        r.Step(StepKind.GridCellClick, r.LoansGrid, row: 4, column: 3, header: "Status", cellType: "Edit");
+        r.Step(StepKind.GridCellClick, clientGrid, row: 0, column: 2, header: "Client", cellType: "Edit");
+        r.Step(StepKind.DoubleClick, clientGrid, row: 0, column: 2, header: "Client", cellType: "Edit");
+        r.Step(StepKind.GridCellClick, clientGrid, row: 1, column: 0, header: "Select", cellType: "CheckBox");
         r.Step(StepKind.DoubleClick, r.Amount);
         r.Step(StepKind.RightClick, r.Amount);
         r.Step(StepKind.ClearText, r.Amount);
@@ -143,14 +150,16 @@ internal sealed class SampleRecording
         _steps.Add(new RecordedStep { Kind = StepKind.MenuPath, Target = File.Id, MenuItems = ["File", "Export", "PDF"] });
         Step(StepKind.Click, ShowMessage);
         Step(StepKind.Click, Ok);
-        Step(StepKind.GridCellClick, LoansGrid, row: 2, column: 3, header: "Status");
+        Step(StepKind.GridCellClick, LoansGrid, row: 2, column: 3, header: "Status", cellType: "Edit");
     }
 
-    private void Step(StepKind kind, PageElement? target, string? text = null, bool? state = null, int? row = null, int? column = null, string? header = null) =>
+    private void Step(
+        StepKind kind, PageElement? target, string? text = null, bool? state = null, int? row = null, int? column = null, string? header = null,
+        string? cellType = null) =>
         _steps.Add(new RecordedStep
         {
             Kind = kind, Target = target?.Id, Text = text, State = state, RowIndex = row, ColumnIndex = column, ColumnHeader = header,
-            At = DateTimeOffset.UnixEpoch,
+            CellControlType = cellType, At = DateTimeOffset.UnixEpoch,
         });
 
     private PageElement Add(string controlType, string? automationId, string? name, AncestorInfo[] ancestors, LocatorCandidate locator, bool isPassword = false)

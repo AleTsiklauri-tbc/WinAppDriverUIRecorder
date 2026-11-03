@@ -60,6 +60,9 @@ public sealed record ProfileSettings
     /// <summary>Regular expressions that let "Merge into existing file" understand a file (spec 10.5).</summary>
     public MergeSettings Merge { get; init; } = new();
 
+    /// <summary>The cells the grid helper in <c>classes.gridSteps</c> can click (D-83). Null: every cell is clicked inside its grid.</summary>
+    public GridStepsSettings? GridSteps { get; init; }
+
     /// <summary>Prefixes removed from an AutomationId for a variable name: txtAmount → amount (spec 10.2). Null: the defaults.</summary>
     public IReadOnlyList<string>? StripIdPrefixes { get; init; }
 
@@ -96,6 +99,14 @@ public sealed record ProfileSettings
 /// <param name="ClassDeclaration">The class declaration line; group "name" is the class name.</param>
 /// <param name="Package">The line new imports follow when the file has none (Java's package line); empty: the top of the file.</param>
 public sealed record MergeSettings(string Member = "", string Method = "", string Import = "", string ClassDeclaration = "", string Package = "");
+
+/// <summary>
+/// The cells a framework's grid helper can click (D-83): with a header, in one grid, of some control types. LMSAutomationDemo's
+/// <c>GridSteps.clickCell(row, header)</c> finds text cells by their header in the grid its GridPage finds (AutomationId "Grid").
+/// </summary>
+/// <param name="GridAutomationId">The AutomationId of the grid the helper works on.</param>
+/// <param name="CellControlTypes">The control types of the cells it finds.</param>
+public sealed record GridStepsSettings(string GridAutomationId = "", IReadOnlyList<string>? CellControlTypes = null);
 
 /// <summary>A code profile: settings and Scriban templates by name ("page", "action.Click"…).</summary>
 /// <param name="Id">The folder name, e.g. "java-appium-pom".</param>

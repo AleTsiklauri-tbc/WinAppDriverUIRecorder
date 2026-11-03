@@ -60,6 +60,7 @@ public sealed class StepRecorder
             RowIndex = draft.RowIndex,
             ColumnIndex = draft.ColumnIndex,
             ColumnHeader = draft.ColumnHeader,
+            CellControlType = draft.CellControlType,
             MenuItems = draft.MenuItems,
             Scroll = draft.Scroll,
             Warnings = draft.Warnings,

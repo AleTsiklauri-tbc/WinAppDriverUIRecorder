@@ -110,7 +110,7 @@ public sealed class RecordingStoreTests : IDisposable
             new() { Kind = StepKind.SetText, Target = element.Id, TestDataKey = "passwordInput", At = Created },
             new() { Kind = StepKind.SetChecked, Target = element.Id, State = true, Warnings = [StepWarning.StateUnavailable], At = Created },
             new() { Kind = StepKind.MenuPath, Target = element.Id, MenuItems = ["File", "Export", "PDF"], At = Created },
-            new() { Kind = StepKind.GridCellClick, Target = grid, RowIndex = 2, ColumnIndex = 3, ColumnHeader = "Status", At = Created },
+            new() { Kind = StepKind.GridCellClick, Target = grid, RowIndex = 2, ColumnIndex = 3, ColumnHeader = "Status", CellControlType = "Edit", At = Created },
             new() { Kind = StepKind.Click, Target = element.Id, Comment = "ძებნა", At = Created },
             new() { Kind = StepKind.Comment, Scroll = -3, At = Created },
         ];

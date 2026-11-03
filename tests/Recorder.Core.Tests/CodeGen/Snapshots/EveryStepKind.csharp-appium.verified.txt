@@ -22,6 +22,7 @@ namespace Recorded.Pages
         public WindowsElement ScheduleTab => _driver.FindElementByAccessibilityId("tabSchedule");
         public WindowsElement StatusLabel => _driver.FindElementByAccessibilityId("lblStatus");
         public WindowsElement SaveButton => _driver.FindElementByAccessibilityId("btnSave");
+        public WindowsElement Grid => _driver.FindElementByAccessibilityId("Grid");
     }
 }
 
@@ -138,6 +139,9 @@ namespace Recorded.Tests
             new Actions(_driver).DoubleClick(loanPage.LoansGrid.FindElementByXPath(".//*[@Name='Client Row 0' or starts-with(@Name,'Client Row 0,')]")).Perform();
             new Actions(_driver).ContextClick(loanPage.LoansGrid.FindElementByXPath(".//*[@Name=' Row 1' or starts-with(@Name,' Row 1,')]")).Perform();
             loanPage.LoansGrid.FindElementByXPath(".//*[@Name='Status Row 4' or starts-with(@Name,'Status Row 4,')]").Click();
+            loanPage.Grid.FindElementByXPath(".//*[@Name='Client Row 0' or starts-with(@Name,'Client Row 0,')]").Click();
+            new Actions(_driver).DoubleClick(loanPage.Grid.FindElementByXPath(".//*[@Name='Client Row 0' or starts-with(@Name,'Client Row 0,')]")).Perform();
+            loanPage.Grid.FindElementByXPath(".//*[@Name='Select Row 1' or starts-with(@Name,'Select Row 1,')]").Click();
             new Actions(_driver).DoubleClick(loanPage.AmountInput).Perform();
             new Actions(_driver).ContextClick(loanPage.AmountInput).Perform();
             loanPage.AmountInput.Clear();

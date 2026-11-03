@@ -145,4 +145,34 @@ public sealed class ProfileTests : IDisposable
             (CodeFileKind.Page, "LoanPage.java"), (CodeFileKind.Page, "MainPage.java"), (CodeFileKind.Page, "WindowPage.java")]);
         new CodeGenerator(ProfileLoader.BuiltIn().Single(p => p.Id == ProfileIds.Java)).Generate(new ElementCatalog(), [], "flow").Files.ShouldBeEmpty();
     }
+
+    // D-83: LMSAutomationDemo's GridSteps.clickCell finds a text cell by its header, in the grid with AutomationId "Grid" only.
+    [Fact]
+    public void Java_grid_steps_click_only_text_cells_of_the_grid_GridSteps_finds_and_other_cells_are_clicked_inside_their_grid()
+    {
+        var recording = SampleRecording.EveryStepKind();
+
+        var steps = LoanSteps(recording.Steps, recording);
+
+        steps.ShouldContain("import tbc.automation.steps.Landing.clientCenter.GridSteps;");
+        (steps.Split("new GridSteps(winDriver).clickCell(rowIndex, columnHeader);").Length - 1).ShouldBe(2);
+        steps.ShouldContain("loanPage.getGrid().findElement(By.xpath(");
+        steps.ShouldContain("loanPage.getLoansGrid().findElement(By.xpath(");
+        steps.ShouldContain("import org.openqa.selenium.By;");
+    }
+
+    [Fact]
+    public void Java_cells_recorded_without_their_control_type_are_clicked_inside_their_grid()
+    {
+        var recording = SampleRecording.EveryStepKind();
+
+        var steps = LoanSteps([.. recording.Steps.Select(step => step with { CellControlType = null })], recording);
+
+        steps.ShouldNotContain("GridSteps");
+        steps.ShouldContain("loanPage.getGrid().findElement(By.xpath(");
+    }
+
+    private static string LoanSteps(IReadOnlyList<RecordedStep> steps, SampleRecording recording) =>
+        new CodeGenerator(ProfileLoader.BuiltIn().Single(p => p.Id == ProfileIds.Java)).Generate(recording.Catalog, steps, "flow")
+            .Files.Single(f => f.FileName == "LoanSteps.java").Text;
 }

@@ -46,7 +46,7 @@ internal sealed class CodeModelBuilder
         }
 
         var byElement = pages.SelectMany(p => p.Elements.Keys.Select(id => (id, p))).ToDictionary(x => x.id, x => x.p);
-        var secretKeys = steps.Where(s => s.TestDataKey is not null).Select(ActionFactory.Key).ToHashSet(StringComparer.Ordinal);
+        var secretKeys = steps.Where(s => s.TestDataKey is not null).Select(s => _actions.Key(s, null)).ToHashSet(StringComparer.Ordinal);
         var blocks = new List<TestBlock>();
         var declaredSteps = new HashSet<PageDraft>();
         var declaredPages = new HashSet<PageDraft>();
@@ -71,7 +71,7 @@ internal sealed class CodeModelBuilder
             }
             else
             {
-                var key = ActionFactory.Key(step);
+                var key = _actions.Key(step, element);
                 if (!page.Actions.TryGetValue(key, out var action))
                 {
                     action = _actions.Method(step, element, page.Code, page.MethodNames, logsValue: !secretKeys.Contains(key) && step.Kind is StepKind.SetText or StepKind.SelectOption);
@@ -132,7 +132,8 @@ internal sealed class CodeModelBuilder
             GridSteps: Has("gridSteps", "GridSteps"),
             Assert: Has("assert", "Assert"),
             TestData: false,
-            Utility: Has("utility", "Utility"));
+            Utility: Has("utility", "Utility"),
+            By: Has("by", "By"));
     }
 
     private ElementCode Element(PageElement element) =>
@@ -169,7 +170,7 @@ internal sealed class CodeModelBuilder
             Code = new PageCode(
                 name, className, name + settings.StepsClassSuffix, Variable, CodeNames.LowerFirst(name) + settings.StepsClassSuffix,
                 page.Key.Id.StartsWith("id:", StringComparison.Ordinal) ? page.Key.DisplayName : null,
-                [.. elements.Values], [], new UsageCode(false, false, false, false, false, false));
+                [.. elements.Values], [], new UsageCode(false, false, false, false, false, false, false));
         }
 
         public PageKey Key { get; }

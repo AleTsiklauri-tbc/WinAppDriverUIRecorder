@@ -11,6 +11,9 @@ end
 if page.uses.grid_steps
   imports = imports | array.add profile.classes.gridSteps
 end
+if page.uses.by
+  imports = imports | array.add profile.classes.by
+end
 if page.uses.utility
   imports = imports | array.add profile.classes.utility
 end

@@ -65,7 +65,7 @@ public sealed class CodeMergerTests
                     return driver.findElementByAccessibilityId( "txtAmount" );
                 }
             }
-            """;
+            """.ReplaceLineEndings("\n");
 
         var result = CodeMerger.Merge(existing, GeneratedPage, Java);
 
@@ -74,7 +74,7 @@ public sealed class CodeMergerTests
                     return driver.findElementByAccessibilityId( "txtAmount" );
                 }
                 public WebElement getSearchButton(){return winDriver.findElementByAccessibilityId("btnSearch");}
-            """);
+            """.ReplaceLineEndings("\n"));
         result.AddedImports.ShouldBe(["import io.appium.java_client.windows.WindowsDriver;", "import org.openqa.selenium.WebElement;", "import tbc.automation.pages.BasePage;"]);
         result.Text.ShouldStartWith("package tbc.automation.pages;\n\nimport io.appium.java_client.windows.WindowsDriver;\n");
     }
@@ -97,7 +97,8 @@ public sealed class CodeMergerTests
     [Fact]
     public void New_steps_methods_go_before_the_closing_brace_and_return_the_files_class()
     {
-        var existing = File.ReadAllText(Path.Combine(RepoRoot.Find(), "docs", "target-style", "ClientSearchSteps.java"));
+        // Line endings depend on how git checked the file out; the output follows the input's (see the CRLF test).
+        var existing = File.ReadAllText(Path.Combine(RepoRoot.Find(), "docs", "target-style", "ClientSearchSteps.java")).ReplaceLineEndings("\n");
         var generated = """
             package tbc.automation.steps;
 

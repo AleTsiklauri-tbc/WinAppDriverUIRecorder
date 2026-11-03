@@ -66,14 +66,15 @@ Comments (`//`, `/* */`) and trailing commas are allowed.
 | `locatorFormats` | The find expression per strategy (`AccessibilityId`, `Name`, `ClassName`, `XPath`); `{value}` is the value as a string literal | `winDriver.findElementByAccessibilityId({value})` … |
 | `testDataExpression` | What the test passes for a secret (a password field's value is never recorded); `{key}` is the key as a literal | `ConfigReader.getProperty({key})` |
 | `testLevelKinds` | Step kinds written as statements in the test instead of Steps methods | the assertions and `SwitchWindow` |
+| `gridSteps` | The cells the grid helper in `classes.gridSteps` can click: those with a header, of a type in `cellControlTypes`, in the grid whose AutomationId is `gridAutomationId`. Such a cell sets `use_grid_steps`; any other cell is clicked inside its own grid (ARCHITECTURE D-83). Absent: no cell uses the helper | `{ "gridAutomationId": "Grid", "cellControlTypes": ["Edit"] }` |
 | `classes` | Fully qualified framework classes by role, for imports and `simple_name` | see below |
 | `stripIdPrefixes` | Removed from AutomationIds for variable names (`txtAmount` → `amount`), for controls captured from now on | `txt`, `btn`, `cmb`… |
 | `elementSuffixByControlType` | Variable name suffix per control type, on top of the built-in ones (`Edit` → `Input`) | see the file |
 | `merge` | Patterns for "Merge into file…" (below) | |
 
-The Java profile's `classes`: `windowsDriver`, `webElement`, `keys`, `actions`, `assert`, `test` (TestNG's annotation),
-`basePage`, `baseTest`, `log`, `configReader`, `gridSteps`, `utility`. **Check `configReader`, `gridSteps` and `utility`
-against your framework**: their packages are assumptions (ARCHITECTURE D-65). Changing one line here fixes every import.
+The Java profile's `classes`: `windowsDriver`, `webElement`, `by`, `keys`, `actions`, `assert`, `test` (TestNG's annotation),
+`basePage`, `baseTest`, `log`, `configReader`, `gridSteps`, `utility`. They were checked against LMSAutomationDemo on
+2026-11-03 (ARCHITECTURE D-65). If the framework moves a class, changing its line here fixes every import.
 
 ## The template model
 
@@ -104,7 +105,7 @@ Variables and members are **strict**: a misspelt name is an error, not an empty 
 | `window_automation_id` | `frmLoan` | Null for a page without a usable AutomationId |
 | `elements` | list of `element` | In capture order |
 | `actions` | list of `action` | The page's Steps methods, in order of first use |
-| `uses` | `uses.keys`, `uses.actions`, `uses.grid_steps`, `uses.assert`, `uses.utility` | Which framework classes the actions' code mentions, for imports |
+| `uses` | `uses.keys`, `uses.actions`, `uses.grid_steps`, `uses.assert`, `uses.utility`, `uses.by` | Which framework classes the actions' code mentions, for imports |
 
 A page is named after its form's AutomationId. A page without one is `Window` (`Dialog` for a Win32 dialog) until you
 rename it: window titles are never used, because LMS shows the open customer in them.
@@ -173,6 +174,7 @@ rename it: window titles are never used, because LMS shows the open customer in 
 | `menu_items` | find expressions for the menu items after the first (MenuPath) | same |
 | `row`, `column` | `rowIndex`, `columnHeader` (grid cells only, else null) | `2`, `"Status"` |
 | `cell` | an expression giving the cell's XPath below the grid (F-6) | a literal |
+| `use_grid_steps` | true when the grid helper in `classes.gridSteps` can click this cell (`gridSteps` in profile.json); otherwise click `cell` inside `target` | same |
 | `comment` | the comment, one line (Comment) | same |
 
 ### Functions

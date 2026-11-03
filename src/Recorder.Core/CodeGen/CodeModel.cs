@@ -57,7 +57,7 @@ public sealed record TestBlock(
 public sealed record CallCode(ActionCode Action, IReadOnlyList<string> Arguments);
 
 /// <summary>Framework types code uses, so templates can import exactly what is needed.</summary>
-public sealed record UsageCode(bool Keys, bool Actions, bool GridSteps, bool Assert, bool TestData, bool Utility);
+public sealed record UsageCode(bool Keys, bool Actions, bool GridSteps, bool Assert, bool TestData, bool Utility, bool By);
 
 /// <summary>What an action template sees when it renders one action's statements.</summary>
 /// <param name="Target">The element expression, e.g. loanPage.getAmountInput(); empty when the action has no element.</param>
@@ -68,7 +68,8 @@ public sealed record UsageCode(bool Keys, bool Actions, bool GridSteps, bool Ass
 /// <param name="Row">The grid row expression; null outside grids.</param>
 /// <param name="Column">The grid column expression: the header as a string, or the column index for a column without a header (D-54).</param>
 /// <param name="Cell">An expression giving the XPath of the cell below the grid, e.g. <c>".//*[@Name='Status Row 2' or starts-with(@Name,'Status Row 2,')]"</c> (F-6).</param>
+/// <param name="UseGridSteps">True when the profile's grid helper (<c>classes.gridSteps</c>) can click this cell (D-83); otherwise click Cell inside Target.</param>
 /// <param name="Comment">One line of text for a Comment step.</param>
 public sealed record ActionContext(
     string Kind, ElementCode? Element, string Target, string? Value, string? State, string? Keys, IReadOnlyList<string> MenuItems,
-    string? Row, string? Column, string? Cell, string Description, string? Comment, ProfileModel Profile);
+    string? Row, string? Column, string? Cell, bool UseGridSteps, string Description, string? Comment, ProfileModel Profile);

@@ -3,17 +3,19 @@ package tbc.automation.pages;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
-// Stub of LMSAutomationDemo's BasePage (docs/target-style/README.md): only the signatures generated code may use.
+// Stub of LMSAutomationDemo's BasePage, with its signatures as checked on 2026-11-03: only what generated code may use.
 public class BasePage {
-    protected final WebDriver driver;
+    protected WebDriver winDriver;
 
-    public BasePage(WebDriver driver) {
-        this.driver = driver;
+    public BasePage(WebDriver winDriver) {
+        this.winDriver = winDriver;
     }
 
-    public void waitForElementTobeVisible(WebElement element, int seconds) {
+    public WebElement waitForElementTobeVisible(WebElement element, int timeoutInSeconds) {
+        return element;
     }
 
-    public void waitForEnabled(WebElement element, int seconds) {
+    public WebElement waitForEnabled(WebElement element, int timeoutSeconds) {
+        return element;
     }
 }

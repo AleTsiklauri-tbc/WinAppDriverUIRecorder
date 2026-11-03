@@ -31,9 +31,13 @@
   // Secrets come from config (D-9): the key is the field's variable name.
   "testDataExpression": "ConfigReader.getProperty({key})",
   "testLevelKinds": ["SwitchWindow", "AssertVisible", "AssertEnabled", "AssertText", "AssertValue", "AssertChecked"],
+  // GridSteps.clickCell(row, header) finds text cells (Edit) by their header, in the grid its GridPage finds (AutomationId
+  // "Grid"). Every other cell is clicked inside its own grid: findElement(By.xpath(...)) on the grid's getter (D-83).
+  "gridSteps": { "gridAutomationId": "Grid", "cellControlTypes": ["Edit"] },
   "classes": {
     "windowsDriver": "io.appium.java_client.windows.WindowsDriver",
     "webElement": "org.openqa.selenium.WebElement",
+    "by": "org.openqa.selenium.By",
     "keys": "org.openqa.selenium.Keys",
     "actions": "org.openqa.selenium.interactions.Actions",
     "assert": "org.testng.Assert",
@@ -42,7 +46,7 @@
     "baseTest": "tbc.automation.BaseTest",
     "log": "tbc.automation.utils.Log",
     "configReader": "tbc.automation.config.ConfigReader",
-    "gridSteps": "tbc.automation.steps.GridSteps",
+    "gridSteps": "tbc.automation.steps.Landing.clientCenter.GridSteps",
     "utility": "tbc.automation.utils.Utility"
   },
   // "Merge into existing file" (spec 10.5). Member and method patterns are matched against one declaration with its

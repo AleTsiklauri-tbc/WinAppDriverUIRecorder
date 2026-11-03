@@ -3,8 +3,8 @@
 Spec 14, Phase 4 acceptance: the Java the recorder generates compiles against the framework it is written for.
 
 - `stubs/` mirrors the signatures of the LMSAutomationDemo classes that generated code uses (`BasePage`, `BaseTest`,
-  `Log`, `ConfigReader`, `GridSteps`, `Utility`), as read from `docs/target-style/`. Bodies are empty: only the
-  signatures matter.
+  `Log`, `ConfigReader`, `GridSteps`, `Utility`), in the same packages, as checked against the project on 2026-11-03
+  (ARCHITECTURE D-65). The bodies do nothing: only the signatures matter.
 - `check-java.ps1 -Source <folder>` compiles every `.java` file in the folder together with the stubs, against the
   real jars (D-10). Exit codes: 0 compiled, 1 compile errors, 2 skipped (no JDK), 3 skipped (a jar is missing).
 - `JavaCompileCheck.cs` runs the script from tests. `JavaCompileTests` (trait `Requires=JDK`) compiles the code

@@ -241,7 +241,8 @@ public sealed class StepBuilder
             ? GridDraft(StepKind.RightClick, element, grid, input.At)
             : Draft(StepKind.RightClick, input.Owner is { ControlType: "ComboBox" } combo ? combo : element, input.At);
 
-    // A column without a header (the check box column in LMS grids) is identified by its index alone.
+    // A column without a header (the check box column in LMS grids) is identified by its index alone. The cell's control
+    // type decides whether a framework's grid helper can click it (D-83).
     private static StepDraft GridDraft(StepKind kind, ElementSnapshot part, ElementSnapshot grid, DateTimeOffset at)
     {
         var header = part.Cell?.ColumnHeader;
@@ -250,6 +251,7 @@ public sealed class StepBuilder
             RowIndex = StepTargets.RowOf(part),
             ColumnIndex = part.Cell?.Column,
             ColumnHeader = string.IsNullOrEmpty(header) ? null : header,
+            CellControlType = part.Cell is null ? null : part.ControlType,
         };
     }
 

@@ -173,6 +173,9 @@ internal sealed record StepFile
 
     public string? ColumnHeader { get; init; }
 
+    /// <summary>Absent in files saved before 0.7.1 (D-83).</summary>
+    public string? CellControlType { get; init; }
+
     public List<string>? MenuItems { get; init; }
 
     public string? Comment { get; init; }

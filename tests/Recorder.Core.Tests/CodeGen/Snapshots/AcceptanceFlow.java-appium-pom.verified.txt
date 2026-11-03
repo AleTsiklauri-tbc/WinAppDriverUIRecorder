@@ -26,9 +26,9 @@ public class LoanPage extends BasePage {
 package tbc.automation.steps;
 
 import io.appium.java_client.windows.WindowsDriver;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import tbc.automation.pages.LoanPage;
-import tbc.automation.steps.GridSteps;
 import tbc.automation.utils.Log;
 
 public class LoanSteps {
@@ -79,7 +79,7 @@ public class LoanSteps {
 
     public LoanSteps clickLoansGridCell(int rowIndex, String columnHeader) {
         log.info("Click a cell of loansGrid: row " + rowIndex + ", column " + columnHeader);
-        new GridSteps(winDriver).clickCell(rowIndex, columnHeader);
+        loanPage.getLoansGrid().findElement(By.xpath(".//*[@Name='" + columnHeader + " Row " + rowIndex + "' or starts-with(@Name,'" + columnHeader + " Row " + rowIndex + ",')]")).click();
         return this;
     }
 }

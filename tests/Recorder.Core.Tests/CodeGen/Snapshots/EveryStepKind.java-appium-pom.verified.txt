@@ -24,16 +24,18 @@ public class LoanPage extends BasePage {
     public WebElement getScheduleTab(){return winDriver.findElementByAccessibilityId("tabSchedule");}
     public WebElement getStatusLabel(){return winDriver.findElementByAccessibilityId("lblStatus");}
     public WebElement getSaveButton(){return winDriver.findElementByAccessibilityId("btnSave");}
+    public WebElement getGrid(){return winDriver.findElementByAccessibilityId("Grid");}
 }
 
 // ===== LoanSteps.java (Steps) =====
 package tbc.automation.steps;
 
 import io.appium.java_client.windows.WindowsDriver;
+import org.openqa.selenium.By;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.Keys;
 import tbc.automation.pages.LoanPage;
-import tbc.automation.steps.GridSteps;
+import tbc.automation.steps.Landing.clientCenter.GridSteps;
 import tbc.automation.utils.Log;
 
 public class LoanSteps {
@@ -84,21 +86,38 @@ public class LoanSteps {
 
     public LoanSteps clickLoansGridCell(int rowIndex, String columnHeader) {
         log.info("Click a cell of loansGrid: row " + rowIndex + ", column " + columnHeader);
-        new GridSteps(winDriver).clickCell(rowIndex, columnHeader);
+        loanPage.getLoansGrid().findElement(By.xpath(".//*[@Name='" + columnHeader + " Row " + rowIndex + "' or starts-with(@Name,'" + columnHeader + " Row " + rowIndex + ",')]")).click();
         return this;
     }
 
     public LoanSteps doubleClickLoansGridCell(int rowIndex, String columnHeader) {
         log.info("Double-click a cell of loansGrid: row " + rowIndex + ", column " + columnHeader);
-        new GridSteps(winDriver).clickCell(rowIndex, columnHeader);
-        new Actions(winDriver).doubleClick().perform();
+        new Actions(winDriver).doubleClick(loanPage.getLoansGrid().findElement(By.xpath(".//*[@Name='" + columnHeader + " Row " + rowIndex + "' or starts-with(@Name,'" + columnHeader + " Row " + rowIndex + ",')]"))).perform();
         return this;
     }
 
     public LoanSteps rightClickLoansGridCell(int rowIndex, int columnIndex) {
         log.info("Right-click a cell of loansGrid: row " + rowIndex + ", column " + columnIndex);
-        new GridSteps(winDriver).clickCell(rowIndex, columnIndex);
-        new Actions(winDriver).contextClick().perform();
+        new Actions(winDriver).contextClick(loanPage.getLoansGrid().findElement(By.xpath(".//*[@Name='" + " Row " + rowIndex + "' or starts-with(@Name,'" + " Row " + rowIndex + ",')]"))).perform();
+        return this;
+    }
+
+    public LoanSteps clickGridCell(int rowIndex, String columnHeader) {
+        log.info("Click a cell of grid: row " + rowIndex + ", column " + columnHeader);
+        new GridSteps(winDriver).clickCell(rowIndex, columnHeader);
+        return this;
+    }
+
+    public LoanSteps doubleClickGridCell(int rowIndex, String columnHeader) {
+        log.info("Double-click a cell of grid: row " + rowIndex + ", column " + columnHeader);
+        new GridSteps(winDriver).clickCell(rowIndex, columnHeader);
+        new Actions(winDriver).doubleClick().perform();
+        return this;
+    }
+
+    public LoanSteps clickGridCell2(int rowIndex, String columnHeader) {
+        log.info("Click a cell of grid: row " + rowIndex + ", column " + columnHeader);
+        loanPage.getGrid().findElement(By.xpath(".//*[@Name='" + columnHeader + " Row " + rowIndex + "' or starts-with(@Name,'" + columnHeader + " Row " + rowIndex + ",')]")).click();
         return this;
     }
 
@@ -310,6 +329,9 @@ public class EveryStepKindTest extends BaseTest {
                 .doubleClickLoansGridCell(0, "Client")
                 .rightClickLoansGridCell(1, 0)
                 .clickLoansGridCell(4, "Status")
+                .clickGridCell(0, "Client")
+                .doubleClickGridCell(0, "Client")
+                .clickGridCell2(1, "Select")
                 .doubleClickAmountInput()
                 .rightClickAmountInput()
                 .clearAmount()

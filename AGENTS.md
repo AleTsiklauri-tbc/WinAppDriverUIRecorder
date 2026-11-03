@@ -6,7 +6,7 @@ Instructions for AI coding assistants working in this repository.
 with WinAppDriver and Java. It replaces Microsoft's WinAppDriver UI Recorder, kept unmodified in `legacy/UIRecorder`.
 The user is a QA automation engineer at a bank; the real target app is LMS, a loan management system.
 
-**Status: all six phases of the spec are done (version 0.7.0); what is still open is in [docs/HANDOFF.md](docs/HANDOFF.md).
+**Status: all six phases of the spec are done (version 0.7.1); what is still open is in [docs/HANDOFF.md](docs/HANDOFF.md).
 Read it before anything else.**
 
 ## Sources of truth
