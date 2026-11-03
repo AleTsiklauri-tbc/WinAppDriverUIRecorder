@@ -115,6 +115,9 @@ public class ControlFindingsTests : IClassFixture<SampleAppFixture>
 
         tabs.Select(t => t.Properties.Name.Value).ShouldBe(["General", "გრაფიკი"]);
         tabs.ShouldAllBe(t => string.IsNullOrEmpty(t.Properties.AutomationId.ValueOrDefault));
+
+        // F-37: nor a RuntimeId, so the locator service can't find a capture of one in the tree.
+        tabs.ShouldAllBe(t => (t.Properties.RuntimeId.ValueOrDefault ?? Array.Empty<int>()).Length == 0);
     }
 
     [Fact]
@@ -126,6 +129,9 @@ public class ControlFindingsTests : IClassFixture<SampleAppFixture>
         var items = navBar.FindAllChildren();
         items.Select(i => i.Properties.Name.Value).ShouldBe(["განაცხადები", "სესხები", "ოპერაციები"]);
         items.ShouldAllBe(i => i.ControlType == ControlType.Button && string.IsNullOrEmpty(i.Properties.AutomationId.ValueOrDefault));
+
+        // F-37: nor a RuntimeId.
+        items.ShouldAllBe(i => (i.Properties.RuntimeId.ValueOrDefault ?? Array.Empty<int>()).Length == 0);
     }
 
     [Fact]

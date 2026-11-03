@@ -1,6 +1,6 @@
 # Handoff
 
-Where WinForms Recorder stands and how to continue it on any PC. Last updated 2026-11-04, after the DevExpress check on LMS.
+Where WinForms Recorder stands and how to continue it on any PC. Last updated 2026-11-04, after the DevExpress check on LMS and the 150 % fix (0.7.2).
 
 ## Status
 
@@ -14,8 +14,8 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
 | 5. UX polish | Done; report sent to the user on 2026-11-03 |
 | 6. Packaging and docs | Done; report sent to the user on 2026-11-03 |
 
-- Version 0.7.1. There are 601 tests: 507 unit tests (2 of them compile the generated Java with javac) and
-  94 integration tests, of which 17 use the real mouse and keyboard.
+- Version 0.7.2. There are 603 tests: 507 unit tests (2 of them compile the generated Java with javac) and
+  96 integration tests, of which 17 use the real mouse and keyboard.
 - The last runs were all on 2026-11-03, on the Phase 4 PC (Windows 11 Home, JDK 17). The 3 WinAppDriver comparisons were
   skipped by pointing them at an unused port, because the WinAppDriver running on that PC can't attach to windows (see
   "Open items").
@@ -38,12 +38,19 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
   - Integration tests without input: 72 passed, 4 skipped (`WindowPlacementTests`, one monitor).
   - `./build.ps1 publish` worked from the Nexus feed in 63 s. The exe answered after 2.0 s, unpacked to `%TEMP%`, and ran unsigned.
   - The remote-desktop session was at 1920×1080 and 150 % during the mouse/keyboard tests: 15 of 17 passed. The other
-    two fail at 150 % (see "Open items").
+    two failed at 150 %; 0.7.2 fixed them (below).
 - **On the work PC, 2026-11-04: the DevExpress check** (ARCHITECTURE F-36). LMS's forms use DevExpress only through
   `MaskBox`-based text boxes (AltaSoft `EditBox`, `DateEditBox`…) and the report preview, and its grids are DataGridViews,
   so the SampleApp's text boxes and grid already stand for them. On the Client Center search page every control got its
   AutomationId as a High, unique locator. Found with a read-only scan of LMS's assemblies and `LmsSurveyTests` (see
-  "Testing notes"). Run at 150 %, the same survey pinned down the cause of the 150 % problem (F-35).
+  "Testing notes"). Run at 150 %, the same survey narrowed down the 150 % problem (F-35).
+- **0.7.2 on the work PC, 2026-11-04: the 150 % fix** (D-84). Hover and capture took a part's bounds from the hit test's
+  own cache, which holds them in a DPI-unaware target's logical pixels on a scaled monitor (F-35); they now build the
+  cache after the hit test. At 1920×1080 and 150 %: `./build.ps1 test -NoInput` passed (507 + 71, 8 skipped), and so
+  did the mouse/keyboard tests (16 passed, the WinAppDriver one skipped), the two that failed on 2026-11-03 included.
+  On LMS, `LmsSurveyTests` found every compared outline right (34 of 35 probes; before the fix 4 of 41 were wrong). The
+  hover test now skips elements whose center is off every monitor: at 150 % the SampleApp's bottom edge is below a
+  1920×1080 screen. The same checks turned up F-37 (see "Open items").
 - Phase 6 added `./build.ps1 publish`, one self-contained 77 MB exe that starts in about 2.3 s (D-82, F-34), the README's
   quick start with three screenshots, docs/USER_GUIDE.md, and .NET itself in THIRD_PARTY_NOTICES.md.
 - Phase 5 added the Settings window, shortcut conflict handling and the cheat sheet, autosave and restore, recent files,
@@ -61,7 +68,7 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
 |---|---|
 | [AGENTS.md](../AGENTS.md) | Working rules and commands |
 | [SPEC.txt](SPEC.txt) | The user's spec, verbatim: the source of truth. All six phases are done; don't redo them |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Design, decisions D-1 to D-83, verified findings F-1 to F-36 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Design, decisions D-1 to D-84, verified findings F-1 to F-37 |
 | [TEMPLATES.md](TEMPLATES.md) | Code profiles and the template model |
 | [target-style/](target-style/) | Real Page, Steps and Test files from the user's Java framework, and the filled-in spec §15 profile |
 | [README.md](../README.md) | What the recorder is, the quick start, and how to build, test and publish it |
@@ -83,8 +90,8 @@ Where WinForms Recorder stands and how to continue it on any PC. Last updated 20
 
    It affects only this repo (D-41). Without it, restore fails with
    `error NU1301: Unable to load the service index for source https://hdprepo.hq.tbc/…`.
-5. `./build.ps1 test -NoInput`. Expected: the 507 unit tests pass, and 70 integration tests pass with 8 skipped: the 3
-   WinAppDriver comparisons, the 4 `WindowPlacementTests`, which need two monitors (with two: 74 passed, 4 skipped), and
+5. `./build.ps1 test -NoInput`. Expected: the 507 unit tests pass, and 71 integration tests pass with 8 skipped: the 3
+   WinAppDriver comparisons, the 4 `WindowPlacementTests`, which need two monitors (with two: 75 passed, 4 skipped), and
    the LMS survey (see "Testing notes").
    Two more skip if the WebView2 Runtime is missing (it is preinstalled on Windows 11), and the two javac tests skip
    without a JDK or the jars.
@@ -137,25 +144,15 @@ throwaway data folder that held a recording of the SampleApp flow; retake them f
 - **Recordings saved before D-70** (version 0.4.0 and earlier builds) can still hold a dialog's title: in its page id, a
   window's Name, or a position locator scoped by the title. Saving such a file again removes the first two, not the third.
   Record any such file again; none was made on LMS.
-- **150 % scaling with a DPI-unaware target** (found on the work PC on 2026-11-03, with the remote-desktop session at
-  1920×1080 and 150 %). This is the first run of Phase 1's acceptance at 150 %, and two mouse/keyboard tests fail:
-  - `Hovering_any_control_…`: 33 of 77 probes fail. Two points lie off-screen, because the SampleApp is 1800×1140 at
-    150 % and doesn't fit. The other 31 are all DataGridView parts (cells, headers, rows). The recorder outlines exactly
-    two-thirds of their right position and size: 954,276 150×33 is drawn as 636,184 100×22. Controls with their own
-    window handle are outlined correctly, and the test's own UI Automation client gets the right bounds.
-  - `Recording_the_acceptance_flow_…`: "Timed out after 10 s waiting for eight steps". Which step differs isn't known yet.
-    Suspect D-42 (menu and toolbar items are chosen by their bounds) and D-44 (the hover snapshot must contain the click
-    point): ToolStrip items, like grid cells, are parts without a window handle.
-  - Cause (F-35, shown on 2026-11-04 by `LmsSurveyTests` on the SampleApp and on LMS): parts served through MSAA get the
-    target's logical pixels when ElementFromPoint finds them, as hover and capture do, but physical pixels when the tree
-    is walked from their window. The recorder's tree reads (`TreeFetcher`, the uniqueness checks) are right.
-  - In LMS this hits grid parts and status bar labels; its editors, buttons and menus are window-backed or come out right
-    (F-36). Sessions opened from a laptop at 150 %, like the work PC's, show it every day.
-  - Next: in `ElementSnapshotFactory`, give an element without its own window the bounds the tree gives it. One way to
-    try: from its nearest window ancestor (the snapshot has it), find the element by its RuntimeId and read its bounds;
-    spike first that this comes back right, and that hover stays within its 100 ms budget (F-17). Then find which step the
-    recording test loses at 150 % before assuming it is the same cause, and rerun `CaptureEndToEndTests` and
-    `RecordingEndToEndTests` at 150 % on a screen where the SampleApp fits (2560×1440 or larger), and at 100 %.
+- **Parts without a RuntimeId get no locators** (F-37): the SampleApp's tab items and owner-drawn items, and on LMS at
+  least the Client Center page's tab item. A capture of one is reported gone, so the locator card stays empty, and a
+  recorded click on a tab would get no locator. LMS's forms have tab controls, so this matters for real flows.
+  - Likely fix, in `LocatorService`: when a capture's session key is empty, find its node in the tree by control type,
+    name and bounds under its nearest ancestor that has a RuntimeId (since D-84 the capture's bounds match the tree's at
+    any scale). Check every use of the key there: `FindMatchesAsync` compares it with each match's key to mark the
+    target, and two empty keys are equal.
+  - Then add a test that captures a tab item and gets its locators, try the locator card and a recording on a tab, and
+    run `LmsSurveyTests` on LMS: the tab item should be paired with its capture.
 - **Recordings saved before 0.7.1** don't know their cells' control types, so in Java all their grid cells are clicked
   inside the grid, never through `GridSteps` (D-83). Record those grid steps again to use `GridSteps`.
 - **Verify (D-62).** Snapshot tests use an in-repo helper because Verify 33 ships under a maintenance-fee agreement. If the
@@ -172,7 +169,7 @@ throwaway data folder that held a recording of the SampleApp flow; retake them f
 - **The exe on colleagues' PCs.** It started on the work PC (see "Status"). Elsewhere, a policy that blocks programs in
   `%TEMP%`, where it unpacks WPF's DLLs, needs `DOTNET_BUNDLE_EXTRACT_BASE_DIR` (USER_GUIDE.md says how). It isn't
   signed, and signing needs the bank's code-signing certificate.
-- **Version**: 0.7.1. When it becomes 1.0 is the user's call.
+- **Version**: 0.7.2. When it becomes 1.0 is the user's call.
 - **Uniqueness timing** (F-31): on the Phase 3–5 PC a check is almost all UI Automation's read of the window, a median of 158 ms when
   the PC is quiet, but past the 300 ms budget while it is busy (just after a build, or with other tests running). If
   `Uniqueness_checks_are_fast_enough` fails, run it alone before suspecting the code. On the work PC: median 159 ms, p95 168 ms.
@@ -196,7 +193,9 @@ throwaway data folder that held a recording of the SampleApp flow; retake them f
   `& 'C:\Program Files (x86)\Windows Application Driver\WinAppDriver.exe' 127.0.0.1 4791`, then
   `./build.ps1 test -WinAppDriverUrl http://127.0.0.1:4791`. Stop it afterwards.
 - A remote-desktop session takes the resolution and scale of the PC you connect from (1920×1080 at 150 % from a laptop,
-  for instance). Check Settings › Display before the mouse/keyboard tests and note it with the results.
+  for instance). Check Settings › Display before the mouse/keyboard tests and note it with the results. At 150 % on such
+  a screen the SampleApp's bottom edge is off screen, so the hover test skips the elements there; to cover them too, run
+  it on a larger screen.
 - `LmsSurveyTests` (`tests/Recorder.IntegrationTests/Lms`) surveys LMS read-only; it found F-35 and F-36. It reads LMS's
   tree as the recorder does and captures at each control's center, but sends no input, reads no value, and writes names
   only as shapes (`Aaaa 99`) and no window title. With LMS open in the same Windows session, after `./build.ps1`:

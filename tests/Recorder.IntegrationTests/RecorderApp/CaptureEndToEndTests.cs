@@ -115,12 +115,21 @@ public sealed class CaptureEndToEndTests : IClassFixture<RecorderWithTargetFixtu
         // What an independent UI Automation client sees under each control's center, read before any highlight is shown.
         Desktop.Raise(Sample.MainWindowHandle);
         var automation = Sample.Session.Automation;
+        var monitors = Monitors.All();
+        var offEveryMonitor = 0;
         var probes = new Dictionary<string, (PixelPoint Point, PixelRect Bounds, string What)>(StringComparer.Ordinal);
         foreach (var element in Sample.Session.MainWindow.FindAllDescendants())
         {
             var bounds = Desktop.BoundsOf(element);
             if (element.Properties.IsOffscreen.ValueOrDefault || bounds.IsEmpty)
             {
+                continue;
+            }
+
+            // No cursor reaches a point off every monitor: at 150 % the SampleApp is taller than a 1920×1080 screen.
+            if (!monitors.Any(monitor => monitor.Bounds.Contains(bounds.Center)))
+            {
+                offEveryMonitor++;
                 continue;
             }
 
@@ -162,7 +171,7 @@ public sealed class CaptureEndToEndTests : IClassFixture<RecorderWithTargetFixtu
             Recorder.WaitForName("Status.State", "Idle");
         }
 
-        TestContext.Current.TestOutputHelper?.WriteLine($"Hovered {probes.Count} distinct elements, {failures.Count} without the right outline.");
+        TestContext.Current.TestOutputHelper?.WriteLine($"Hovered {probes.Count} distinct elements, {failures.Count} without the right outline; skipped {offEveryMonitor} elements whose center is off every monitor.");
         failures.ShouldBeEmpty();
     }
 

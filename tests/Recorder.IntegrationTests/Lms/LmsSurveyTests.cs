@@ -17,8 +17,8 @@ namespace Recorder.IntegrationTests.Lms;
 /// Spike, not a regression test: how LMS looks to the recorder (ARCHITECTURE F-35, F-36). Read-only: no input, no value
 /// read, every name reduced to its shape (letters a/A, digits 9), window titles never written. Runs only when
 /// WINFORMSRECORDER_LMS_SURVEY names the report file and LMS (or WINFORMSRECORDER_LMS_SURVEY_PROCESS) runs in this Windows
-/// session. Bounds are read through the recorder's cache request, live, and from a capture at the element's center as hover
-/// makes it; at 150 % the capture's differ for parts served through MSAA (F-35).
+/// session. Bounds are read through the recorder's cache request, live, and from a capture at the element's center, as
+/// hover makes it: comparing them found F-35.
 /// </summary>
 public sealed partial class LmsSurveyTests
 {

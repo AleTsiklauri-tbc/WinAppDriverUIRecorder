@@ -12,8 +12,9 @@ using Xunit;
 namespace Recorder.IntegrationTests.SampleApp;
 
 /// <summary>
-/// Phase 3 findings: what a click on a menu, a tool strip, a context menu or a grid cell resolves to (F-25 to F-27).
-/// Menus are opened with ExpandCollapse and WM_CONTEXTMENU, so these tests do not move the mouse.
+/// Phase 3 findings: what a click on a menu, a tool strip, a context menu or a grid cell resolves to (F-25 to F-27), and
+/// the bounds a capture gets on a scaled monitor (F-35). Menus are opened with ExpandCollapse and WM_CONTEXTMENU, so
+/// these tests do not move the mouse.
 /// </summary>
 public sealed class StripAndGridFindingsTests : IClassFixture<SampleAppFixture>, IDisposable
 {
@@ -98,6 +99,33 @@ public sealed class StripAndGridFindingsTests : IClassFixture<SampleAppFixture>,
         StepTargets.OwnerIndex(cell).ShouldBe(1);
         (box.Cell!.Row, box.Cell.Column).ShouldBe((2, 0));
         string.IsNullOrEmpty(box.Cell.ColumnHeader).ShouldBeTrue();
+    }
+
+    /// <summary>
+    /// F-35: on a scaled monitor a hit test that builds its cache in the same call holds a cell's bounds in the DPI-unaware
+    /// SampleApp's logical pixels. The capture hit-tests first and builds its cache afterwards, so it gets the physical
+    /// bounds the tree gives.
+    /// </summary>
+    [Fact]
+    public async Task A_grid_cell_is_captured_with_the_bounds_the_tree_gives_it_at_any_scale()
+    {
+        Desktop.Raise(_app.MainWindowHandle);
+        var automation = _app.Session.Automation;
+        var status = Wait.For(() => _app.ById("dgvLoans").FindFirstDescendant(c => c.ByName("Status Row 2, Not sorted.")), Timeout, "the Status cell of row 2");
+        var expected = Desktop.BoundsOf(status);
+        var request = ElementSnapshotFactory.Request([automation.PropertyLibrary.Element.BoundingRectangle]);
+        System.Drawing.Rectangle cachedByHitTest;
+        using (request.Activate())
+        {
+            cachedByHitTest = automation.FromPoint(new System.Drawing.Point(expected.Center.X, expected.Center.Y)).Properties.BoundingRectangle.Value;
+        }
+
+        var cell = await CaptureAsync(expected.Center);
+
+        cell.Name.ShouldBe("Status Row 2, Not sorted.");
+        cell.Bounds.ShouldBe(expected);
+        var scaled = Desktop.ScaleAt(expected.Center) > 1;
+        (new PixelRect(cachedByHitTest.X, cachedByHitTest.Y, cachedByHitTest.Width, cachedByHitTest.Height) != expected).ShouldBe(scaled, $"bounds cached by the hit test: {cachedByHitTest}, the tree's: {expected}");
     }
 
     /// <summary>A context menu is a separate window owned by the main window, so a window session reaches it (as F-23).</summary>

@@ -61,10 +61,18 @@ internal sealed class ElementSnapshotFactory
     /// <param name="findLabel">Also look for a nearby label (7.8): one more call, worth it for a capture but not for hovering.</param>
     public CapturedElement? AtPoint(PixelPoint point, int ignoredProcessId, bool findLabel, CancellationToken cancellationToken)
     {
+        // The hit test runs without a cache request: what it caches itself has the bounds of a part without a window in a
+        // DPI-unaware target's logical pixels, while a cache built afterwards has them right (F-35).
+        var hit = _automation.FromPoint(new Point(point.X, point.Y));
+        if (hit is null)
+        {
+            return null;
+        }
+
         AutomationElement? element;
         using (_elementRequest.Activate())
         {
-            element = _automation.FromPoint(new Point(point.X, point.Y));
+            element = hit.FrameworkAutomationElement.GetUpdatedCache();
             if (element is null || element.Properties.ProcessId.ValueOrDefault == ignoredProcessId)
             {
                 return null;

@@ -30,10 +30,10 @@ stays on your PC: no telemetry, no update checks, and password fields are never 
 The exe is built from this repository with `./build.ps1 publish` (below), which writes
 `artifacts\publish\win-x64\WinFormsRecorder.exe`.
 
-**Status.** Version 0.7.1: all six phases of the spec are done. LMS's controls were checked on 2026-11-04: its editors are
+**Status.** Version 0.7.2: all six phases of the spec are done. LMS's controls were checked on 2026-11-04: its editors are
 text boxes and its grids DataGridViews, which the recorder handles. Still to be checked: recording LMS's date and
-check-combo pop-ups, and two monitors at different scales. Known problem: at 150 % display scaling, grid cells and other
-parts without their own window are outlined in the wrong place ([docs/HANDOFF.md](docs/HANDOFF.md)).
+check-combo pop-ups, and two monitors at different scales. Known problem: tab items and other parts that UI Automation
+gives no RuntimeId are captured but get no locators ([docs/HANDOFF.md](docs/HANDOFF.md)).
 
 ## Build from source
 
